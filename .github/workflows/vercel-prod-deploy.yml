@@ -1,13 +1,15 @@
-name: Vercel Production Deployment
+name: CI Check
 
 on:
   push:
-    branches:
-      - prod
+    branches: [prod]
+  pull_request:
+    branches: [prod]
 
 jobs:
-  Deploy-to-Vercel:
+  build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -15,24 +17,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install dependencies (sẽ tự chạy prisma generate qua postinstall)
         run: npm ci
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-
-      - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-
-      # Generate Prisma Client (lib/generated/prisma bị gitignore nên phải generate lại trên CI)
-      - name: Generate Prisma Client
-        run: npx prisma generate
-
-      - name: Build Project Artifacts
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Deploy Project Artifacts to Vercel
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Build
+        run: npm run build
+        env:
+          # Cần DATABASE_URL để prisma generate và next build không lỗi
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
