@@ -27,6 +27,10 @@ jobs:
       - name: Pull Vercel Environment Information
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
+      # Generate Prisma Client (lib/generated/prisma bị gitignore nên phải generate lại trên CI)
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
       - name: Build Project Artifacts
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
