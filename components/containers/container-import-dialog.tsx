@@ -382,7 +382,13 @@ export function ContainerImportDialog({
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)}>
+      <Button
+        variant="outline"
+        onClick={() => {
+          setDialogKey((current) => current + 1)
+          setOpen(true)
+        }}
+      >
         <Upload className="mr-2 size-4" />
         Import CSV/Excel/EDI
       </Button>
@@ -408,7 +414,6 @@ export function ContainerImportDialog({
                 formOptions={formOptions}
                 onSuccess={() => {
                   setOpen(false)
-                  setDialogKey((current) => current + 1)
                 }}
               />
             </TabsContent>
@@ -418,7 +423,6 @@ export function ContainerImportDialog({
                 key={`edi-${dialogKey}`}
                 onSuccess={() => {
                   setOpen(false)
-                  setDialogKey((current) => current + 1)
                 }}
               />
             </TabsContent>

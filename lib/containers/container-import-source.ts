@@ -3,6 +3,17 @@ function readStringValue(formData: FormData, key: string) {
   return typeof value === "string" ? value : ""
 }
 
+/** .xlsx / .xlsm la ZIP; neu ten file mat duoi .xlsx van phai doc duoc. */
+function isZipArchiveStart(bytes: Uint8Array) {
+  return (
+    bytes.length >= 4 &&
+    bytes[0] === 0x50 &&
+    bytes[1] === 0x4b &&
+    (bytes[2] === 0x03 || bytes[2] === 0x05 || bytes[2] === 0x07) &&
+    (bytes[3] === 0x04 || bytes[3] === 0x06 || bytes[3] === 0x08)
+  )
+}
+
 export type SpreadsheetImportSourcePayload =
   | {
       format: "csv"
@@ -47,12 +58,19 @@ export async function readCsvImportSourcePayload(
 
   if (fileValue instanceof File && fileValue.size > 0) {
     const fileName = fileValue.name || "containers.csv"
+    const lower = fileName.toLowerCase()
+    const bytes = new Uint8Array(await fileValue.arrayBuffer())
 
-    if (fileName.toLowerCase().endsWith(".xlsx")) {
+    const looksOfficeOpenXmlByName =
+      lower.endsWith(".xlsx") ||
+      lower.endsWith(".xlsm") ||
+      lower.endsWith(".xlsb")
+
+    if (looksOfficeOpenXmlByName || isZipArchiveStart(bytes)) {
       return {
         format: "xlsx" as const,
         text: null,
-        bytes: new Uint8Array(await fileValue.arrayBuffer()),
+        bytes,
         fileName,
         errors: [] as string[],
       }
@@ -60,7 +78,7 @@ export async function readCsvImportSourcePayload(
 
     return {
       format: "csv" as const,
-      text: await fileValue.text(),
+      text: new TextDecoder("utf-8", { fatal: false }).decode(bytes),
       bytes: null,
       fileName,
       errors: [] as string[],

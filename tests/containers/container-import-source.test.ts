@@ -52,6 +52,26 @@ test("uses persisted EDI text when textarea and file are both empty on import su
   assert.match(result.text ?? "", /EQD\+MSKU1234567/)
 })
 
+test("treats zip-shaped upload as xlsx when filename has no .xlsx suffix", async () => {
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([["Unit Nbr"]]), "Sheet1")
+  const workbookBuffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" })
+  const formData = new FormData()
+  formData.set(
+    "csvFile",
+    new File([new Uint8Array(workbookBuffer)], "FINAL DISCHARGE LIST (3)", {
+      type: "application/octet-stream",
+    }),
+  )
+
+  const result = await readCsvImportSourcePayload(formData)
+
+  assert.deepEqual(result.errors, [])
+  assert.equal(result.format, "xlsx")
+  assert.equal(result.text, null)
+  assert.ok(result.bytes && result.bytes.length > 0)
+})
+
 test("reads xlsx workbook uploads as spreadsheet bytes", async () => {
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(

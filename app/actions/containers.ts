@@ -306,7 +306,12 @@ export async function previewOrImportContainersAction(
       parsed.errors[0] ?? "Khong doc duoc noi dung import.",
       parsed.errors,
       {
-        text: parsed.persistedText ? parsed.persistedText : null,
+        // CSV/Excel: dung echo noi dung loi vao hidden field — lan submit sau khong file van gui lai
+        // text cu -> lap loi "thieu cot". EDI: giu text de nguoi dung sua paste.
+        text:
+          mode === "edi" && parsed.persistedText
+            ? parsed.persistedText
+            : null,
         fileName,
         summary: parsed.sourceSummary,
       },
