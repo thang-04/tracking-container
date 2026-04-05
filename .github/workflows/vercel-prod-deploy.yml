@@ -5,10 +5,6 @@ on:
     branches:
       - prod
 
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
 jobs:
   Deploy-to-Vercel:
     runs-on: ubuntu-latest
@@ -20,14 +16,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm' # Sẽ dùng cache để cài đặt nhanh hơn
+          cache: 'npm'
 
-      # Cài đặt dependencies (BẮT BUỘC để vercel build có thể chạy Next.js)
       - name: Install dependencies
         run: npm ci
-      
-      # - name: Run Lint
-      #   run: npm run lint
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
