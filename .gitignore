@@ -1,7 +1,9 @@
 .npmrc
 .snowflake/
-.vercel/
 next.user-config.*
+
+# Vercel - chỉ ignore output folder, KHÔNG ignore project.json (cần cho CI/CD)
+.vercel/output/
 
 # Environment variables
 .env
@@ -14,6 +16,3 @@ node_modules/
 .docs/
 /docs/
 /lib/generated/prisma
-
-.vercel
-.env*.local
