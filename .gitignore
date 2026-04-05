@@ -19,3 +19,4 @@ node_modules/
 /docs/
 /lib/generated/prisma
 .superpowers/
+.next-start-*.log
