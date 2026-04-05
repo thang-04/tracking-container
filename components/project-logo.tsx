@@ -22,13 +22,14 @@ export function ProjectLogo({
         className
       )}
     >
+      {/* width/height phai khop file PNG (1280x698); sai ty le lam logo mo/me */}
       <Image
         src="/tracking-container-logo-lockup.png"
         alt="Container Tracking"
-        width={1069}
-        height={486}
+        width={1280}
+        height={698}
         priority={priority}
-        sizes="(max-width: 640px) 12rem, 18rem"
+        sizes="(max-width: 640px) 100vw, 280px"
         className={cn("h-full w-auto max-w-full object-contain", imageClassName)}
       />
     </div>
