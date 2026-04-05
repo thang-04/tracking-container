@@ -1,0 +1,82 @@
+[
+  {
+    "query": "phân tích cấu trúc routes trong project React của tôi",
+    "should_trigger": true
+  },
+  {
+    "query": "liệt kê tất cả các page và chức năng của mỗi màn hình",
+    "should_trigger": true
+  },
+  {
+    "query": "tạo tài liệu về cấu trúc ứng dụng web này",
+    "should_trigger": true
+  },
+  {
+    "query": "crawl tất cả routes và cho tôi biết mỗi màn hình hiển thị gì",
+    "should_trigger": true
+  },
+  {
+    "query": "routes trong app này có những chức năng gì",
+    "should_trigger": true
+  },
+  {
+    "query": "phân tích chi tiết màn hình /users để xem có chức năng gì",
+    "should_trigger": true
+  },
+  {
+    "query": "tôi muốn biết app này có bao nhiêu page và mỗi page làm gì",
+    "should_trigger": true
+  },
+  {
+    "query": "extract tất cả navigation routes và UI elements",
+    "should_trigger": true
+  },
+  {
+    "query": "generate documentation về các screen trong ứng dụng Vue này",
+    "should_trigger": true
+  },
+  {
+    "query": "phân tích cấu trúc app và xuất ra file screens.yaml",
+    "should_trigger": true
+  },
+  {
+    "query": "fix bug này giúp tôi",
+    "should_trigger": false
+  },
+  {
+    "query": "viết unit test cho function calculateTotal",
+    "should_trigger": false
+  },
+  {
+    "query": "refactor đoạn code này thành React component",
+    "should_trigger": false
+  },
+  {
+    "query": "deploy app lên production",
+    "should_trigger": false
+  },
+  {
+    "query": "tạo API mới cho user authentication",
+    "should_trigger": false
+  },
+  {
+    "query": "sửa lỗi render không đúng trên mobile",
+    "should_trigger": false
+  },
+  {
+    "query": "thêm dark mode vào ứng dụng",
+    "should_trigger": false
+  },
+  {
+    "query": "optimize performance của trang home",
+    "should_trigger": false
+  },
+  {
+    "query": "viết documentation cho API endpoints",
+    "should_trigger": false
+  },
+  {
+    "query": "tạo file config cho environment",
+    "should_trigger": false
+  }
+]

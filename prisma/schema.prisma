@@ -1,0 +1,621 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enums
+enum ProfileRole {
+  admin
+  seaport_staff
+  dryport_staff
+  customer
+
+  @@map("profile_role")
+}
+
+enum PortType {
+  seaport
+  dryport
+
+  @@map("port_type")
+}
+
+enum ContainerStatus {
+  new
+  at_seaport_yard
+  on_barge
+  in_transit
+  at_dryport_yard
+  released
+  hold
+
+  @@map("container_status")
+}
+
+enum CustomsStatus {
+  pending
+  cleared
+  hold
+
+  @@map("customs_status")
+}
+
+enum ContainerSourceType {
+  manual
+  edi
+
+  @@map("container_source_type")
+}
+
+enum ContainerEventType {
+  created
+  edi_imported
+  yard_in
+  yard_move
+  yard_out
+  voyage_assigned
+  voyage_departed
+  checkpoint_updated
+  voyage_arrived
+  customs_changed
+  released
+  alert_created
+
+  @@map("container_event_type")
+}
+
+enum ContainerEventSourceType {
+  system
+  user
+  edi
+  gps
+
+  @@map("container_event_source_type")
+}
+
+enum EdiBatchStatus {
+  uploaded
+  validated
+  imported
+  partial
+  rejected
+
+  @@map("edi_batch_status")
+}
+
+enum EdiValidationStatus {
+  pending
+  valid
+  invalid
+
+  @@map("edi_validation_status")
+}
+
+enum EdiImportStatus {
+  pending
+  imported
+  rejected
+
+  @@map("edi_import_status")
+}
+
+enum VehicleType {
+  barge
+
+  @@map("vehicle_type")
+}
+
+enum VehicleStatus {
+  available
+  maintenance
+  in_use
+
+  @@map("vehicle_status")
+}
+
+enum VoyageStatus {
+  draft
+  planned
+  loading
+  departed
+  arrived
+  cancelled
+
+  @@map("voyage_status")
+}
+
+enum VoyageLoadStatus {
+  planned
+  loaded
+  unloaded
+
+  @@map("voyage_load_status")
+}
+
+enum TrackingGeofenceStatus {
+  normal
+  entered
+  exited
+  deviated
+
+  @@map("tracking_geofence_status")
+}
+
+enum TrackingSourceType {
+  gps
+  manual
+
+  @@map("tracking_source_type")
+}
+
+enum AlertType {
+  delay
+  hold
+  route_deviation
+  congestion
+  maintenance
+  weather
+
+  @@map("alert_type")
+}
+
+enum AlertSeverity {
+  info
+  warning
+  critical
+
+  @@map("alert_severity")
+}
+
+enum AlertStatus {
+  open
+  acknowledged
+  resolved
+
+  @@map("alert_status")
+}
+
+// Models
+model Customer {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code        String   @unique
+  name        String
+  taxCode     String?  @map("tax_code")
+  contactName String?  @map("contact_name")
+  phone       String?
+  email       String?
+  address     String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  profiles   Profile[]
+  containers Container[]
+
+  @@map("customers")
+}
+
+model ShippingLine {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code      String   @unique
+  name      String
+  country   String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  containers Container[]
+
+  @@map("shipping_lines")
+}
+
+model ContainerType {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code        String   @unique
+  name        String
+  isoCode     String?  @map("iso_code")
+  lengthFt    Int?     @map("length_ft")
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  containers Container[]
+
+  @@map("container_types")
+}
+
+model Port {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code      String   @unique
+  name      String
+  portType  PortType @map("port_type")
+  address   String?
+  lat       Decimal? @db.Decimal(10, 7)
+  lng       Decimal? @db.Decimal(10, 7)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  yards               Yard[]
+  originRoutes        Route[]     @relation("RouteOriginPort")
+  destinationRoutes   Route[]     @relation("RouteDestinationPort")
+  profiles            Profile[]
+  containersAsCurrent Container[] @relation("ContainerCurrentPort")
+
+  @@map("ports")
+}
+
+model Yard {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  portId      String   @map("port_id") @db.Uuid
+  code        String
+  name        String
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  port                Port        @relation(fields: [portId], references: [id])
+  blocks              YardBlock[]
+  containersAsCurrent Container[] @relation("ContainerCurrentYard")
+
+  @@unique([portId, code], map: "uq_yards_port_code")
+  @@map("yards")
+}
+
+model YardBlock {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  yardId      String   @map("yard_id") @db.Uuid
+  code        String
+  name        String
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  yard                Yard        @relation(fields: [yardId], references: [id])
+  slots               YardSlot[]
+  containersAsCurrent Container[] @relation("ContainerCurrentBlock")
+
+  @@unique([yardId, code], map: "uq_yard_blocks_yard_code")
+  @@map("yard_blocks")
+}
+
+model YardSlot {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blockId     String   @map("block_id") @db.Uuid
+  code        String
+  rowNo       Int?     @map("row_no")
+  bayNo       Int?     @map("bay_no")
+  tierNo      Int?     @map("tier_no")
+  maxWeightKg Decimal? @map("max_weight_kg") @db.Decimal(14, 3)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  block               YardBlock        @relation(fields: [blockId], references: [id])
+  containersAsCurrent Container[]      @relation("ContainerCurrentSlot")
+  eventsFromSlot      ContainerEvent[] @relation("EventFromSlot")
+  eventsToSlot        ContainerEvent[] @relation("EventToSlot")
+
+  @@unique([blockId, code], map: "uq_yard_slots_block_code")
+  @@map("yard_slots")
+}
+
+model Route {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code              String   @unique
+  name              String
+  originPortId      String   @map("origin_port_id") @db.Uuid
+  destinationPortId String   @map("destination_port_id") @db.Uuid
+  standardEtaHours  Int?     @map("standard_eta_hours")
+  distanceKm        Decimal? @map("distance_km") @db.Decimal(14, 3)
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  originPort      Port              @relation("RouteOriginPort", fields: [originPortId], references: [id])
+  destinationPort Port              @relation("RouteDestinationPort", fields: [destinationPortId], references: [id])
+  checkpoints     RouteCheckpoint[]
+  voyages         Voyage[]
+  containers      Container[]
+
+  @@map("routes")
+}
+
+model RouteCheckpoint {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  routeId     String   @map("route_id") @db.Uuid
+  seqNo       Int      @map("seq_no")
+  name        String
+  lat         Decimal  @db.Decimal(10, 7)
+  lng         Decimal  @db.Decimal(10, 7)
+  radiusM     Int?     @map("radius_m")
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  route             Route              @relation(fields: [routeId], references: [id])
+  voyagesAsCurrent  Voyage[]           @relation("VoyageCurrentCheckpoint")
+  voyageCheckpoints VoyageCheckpoint[]
+
+  @@unique([routeId, seqNo], map: "uq_route_checkpoints_route_seq")
+  @@map("route_checkpoints")
+}
+
+model Profile {
+  id          String      @id @map("id") @db.Uuid
+  email       String      @unique
+  fullName    String      @map("full_name")
+  role        ProfileRole
+  portId      String?     @map("port_id") @db.Uuid
+  customerId  String?     @map("customer_id") @db.Uuid
+  phone       String?
+  jobTitle    String?     @map("job_title")
+  isActive    Boolean     @default(true) @map("is_active")
+  lastLoginAt DateTime?   @map("last_login_at") @db.Timestamptz
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  port            Port?            @relation(fields: [portId], references: [id])
+  customer        Customer?        @relation(fields: [customerId], references: [id])
+  ediBatches      EdiBatch[]
+  alertsAcked     Alert[]          @relation("AlertAckBy")
+  alertsResolved  Alert[]          @relation("AlertResolvedBy")
+  containerEvents ContainerEvent[] @relation("EventActorUser")
+
+  @@map("profiles")
+}
+
+model Vehicle {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code             String        @unique
+  name             String
+  vehicleType      VehicleType   @default(barge) @map("vehicle_type")
+  registrationNo   String?       @unique(map: "uq_vehicles_registration_no") @map("registration_no")
+  capacityTeu      Int?          @map("capacity_teu")
+  capacityWeightKg Decimal?      @map("capacity_weight_kg") @db.Decimal(14, 3)
+  status           VehicleStatus @default(available)
+  currentLat       Decimal?      @map("current_lat") @db.Decimal(10, 7)
+  currentLng       Decimal?      @map("current_lng") @db.Decimal(10, 7)
+  note             String?
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  voyages           Voyage[]
+  trackingPositions TrackingPosition[]
+  alerts            Alert[]
+
+  @@map("vehicles")
+}
+
+model Voyage {
+  id                  String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code                String       @unique
+  vehicleId           String       @map("vehicle_id") @db.Uuid
+  routeId             String       @map("route_id") @db.Uuid
+  status              VoyageStatus @default(draft)
+  etd                 DateTime?    @db.Timestamptz
+  eta                 DateTime?    @db.Timestamptz
+  atd                 DateTime?    @db.Timestamptz
+  ata                 DateTime?    @db.Timestamptz
+  currentCheckpointId String?      @map("current_checkpoint_id") @db.Uuid
+  currentLat          Decimal?     @map("current_lat") @db.Decimal(10, 7)
+  currentLng          Decimal?     @map("current_lng") @db.Decimal(10, 7)
+  note                String?
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  vehicle             Vehicle            @relation(fields: [vehicleId], references: [id])
+  route               Route              @relation(fields: [routeId], references: [id])
+  currentCheckpoint   RouteCheckpoint?   @relation("VoyageCurrentCheckpoint", fields: [currentCheckpointId], references: [id])
+  containersAsCurrent Container[]        @relation("ContainerCurrentVoyage")
+  voyageContainers    VoyageContainer[]
+  voyageCheckpoints   VoyageCheckpoint[]
+  trackingPositions   TrackingPosition[]
+  alerts              Alert[]
+  events              ContainerEvent[]
+
+  @@map("voyages")
+}
+
+model EdiBatch {
+  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batchNo     String         @unique @map("batch_no")
+  fileName    String         @map("file_name")
+  filePath    String         @map("file_path")
+  status      EdiBatchStatus @default(uploaded)
+  totalRows   Int            @default(0) @map("total_rows")
+  successRows Int            @default(0) @map("success_rows")
+  errorRows   Int            @default(0) @map("error_rows")
+  uploadedBy  String?        @map("uploaded_by") @db.Uuid
+  uploadedAt  DateTime?      @map("uploaded_at") @db.Timestamptz
+  processedAt DateTime?      @map("processed_at") @db.Timestamptz
+  note        String?
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  uploader   Profile?      @relation(fields: [uploadedBy], references: [id])
+  containers Container[]
+  rows       EdiBatchRow[]
+
+  @@map("edi_batches")
+}
+
+model Container {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  containerNo     String              @unique @map("container_no")
+  containerTypeId String              @map("container_type_id") @db.Uuid
+  shippingLineId  String?             @map("shipping_line_id") @db.Uuid
+  customerId      String?             @map("customer_id") @db.Uuid
+  routeId         String?             @map("route_id") @db.Uuid
+  currentStatus   ContainerStatus     @default(new) @map("current_status")
+  customsStatus   CustomsStatus       @default(pending) @map("customs_status")
+  currentPortId   String?             @map("current_port_id") @db.Uuid
+  currentYardId   String?             @map("current_yard_id") @db.Uuid
+  currentBlockId  String?             @map("current_block_id") @db.Uuid
+  currentSlotId   String?             @unique @map("current_slot_id") @db.Uuid // Must be unique where not null
+  currentVoyageId String?             @map("current_voyage_id") @db.Uuid
+  eta             DateTime?           @db.Timestamptz
+  grossWeightKg   Decimal?            @map("gross_weight_kg") @db.Decimal(14, 3)
+  sealNo          String?             @map("seal_no")
+  billNo          String?             @map("bill_no")
+  sourceType      ContainerSourceType @default(manual) @map("source_type")
+  ediBatchId      String?             @map("edi_batch_id") @db.Uuid
+  lastEventAt     DateTime?           @map("last_event_at") @db.Timestamptz
+  note            String?
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  containerType ContainerType @relation(fields: [containerTypeId], references: [id])
+  shippingLine  ShippingLine? @relation(fields: [shippingLineId], references: [id])
+  customer      Customer?     @relation(fields: [customerId], references: [id])
+  route         Route?        @relation(fields: [routeId], references: [id])
+  currentPort   Port?         @relation("ContainerCurrentPort", fields: [currentPortId], references: [id])
+  currentYard   Yard?         @relation("ContainerCurrentYard", fields: [currentYardId], references: [id])
+  currentBlock  YardBlock?    @relation("ContainerCurrentBlock", fields: [currentBlockId], references: [id])
+  currentSlot   YardSlot?     @relation("ContainerCurrentSlot", fields: [currentSlotId], references: [id])
+  currentVoyage Voyage?       @relation("ContainerCurrentVoyage", fields: [currentVoyageId], references: [id])
+  ediBatch      EdiBatch?     @relation(fields: [ediBatchId], references: [id])
+
+  ediBatchRows     EdiBatchRow[]
+  voyageContainers VoyageContainer[]
+  alerts           Alert[]
+  events           ContainerEvent[]
+
+  @@map("containers")
+}
+
+model EdiBatchRow {
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batchId             String              @map("batch_id") @db.Uuid
+  rowNo               Int                 @map("row_no")
+  rawData             Json                @map("raw_data")
+  containerNo         String?             @map("container_no")
+  validationStatus    EdiValidationStatus @default(pending) @map("validation_status")
+  importStatus        EdiImportStatus     @default(pending) @map("import_status")
+  errorMessage        String?             @map("error_message")
+  importedContainerId String?             @map("imported_container_id") @db.Uuid
+  replayCount         Int                 @default(0) @map("replay_count")
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  batch             EdiBatch   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  importedContainer Container? @relation(fields: [importedContainerId], references: [id], onDelete: SetNull)
+
+  @@unique([batchId, rowNo], map: "uq_edi_batch_rows_batch_row_no")
+  @@map("edi_batch_rows")
+}
+
+model VoyageContainer {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  voyageId    String           @map("voyage_id") @db.Uuid
+  containerId String           @map("container_id") @db.Uuid
+  sequenceNo  Int?             @map("sequence_no")
+  loadStatus  VoyageLoadStatus @default(planned) @map("load_status")
+  loadedAt    DateTime?        @map("loaded_at") @db.Timestamptz
+  unloadedAt  DateTime?        @map("unloaded_at") @db.Timestamptz
+  note        String?
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  voyage    Voyage    @relation(fields: [voyageId], references: [id], onDelete: Cascade)
+  container Container @relation(fields: [containerId], references: [id])
+
+  @@unique([voyageId, containerId], map: "uq_voyage_containers_voyage_container")
+  // uq_voyage_containers_active_container (partial index on container_id where load_status in ('planned', 'loaded')) 
+  @@map("voyage_containers")
+}
+
+model VoyageCheckpoint {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  voyageId       String   @map("voyage_id") @db.Uuid
+  checkpointId   String?  @map("checkpoint_id") @db.Uuid
+  checkpointTime DateTime @map("checkpoint_time") @db.Timestamptz
+  lat            Decimal? @db.Decimal(10, 7)
+  lng            Decimal? @db.Decimal(10, 7)
+  note           String?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  voyage     Voyage           @relation(fields: [voyageId], references: [id], onDelete: Cascade)
+  checkpoint RouteCheckpoint? @relation(fields: [checkpointId], references: [id], onDelete: SetNull)
+
+  @@map("voyage_checkpoints")
+}
+
+model TrackingPosition {
+  id             String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vehicleId      String                 @map("vehicle_id") @db.Uuid
+  voyageId       String?                @map("voyage_id") @db.Uuid
+  lat            Decimal                @db.Decimal(10, 7)
+  lng            Decimal                @db.Decimal(10, 7)
+  speed          Decimal?               @db.Decimal(10, 3)
+  heading        Decimal?               @db.Decimal(10, 3)
+  geofenceStatus TrackingGeofenceStatus @default(normal) @map("geofence_status")
+  sourceType     TrackingSourceType     @default(manual) @map("source_type")
+  recordedAt     DateTime               @map("recorded_at") @db.Timestamptz
+  createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  voyage  Voyage? @relation(fields: [voyageId], references: [id], onDelete: SetNull)
+
+  @@map("tracking_positions")
+}
+
+model Alert {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alertType      AlertType     @map("alert_type")
+  severity       AlertSeverity
+  status         AlertStatus   @default(open)
+  containerId    String?       @map("container_id") @db.Uuid
+  voyageId       String?       @map("voyage_id") @db.Uuid
+  vehicleId      String?       @map("vehicle_id") @db.Uuid
+  title          String
+  message        String
+  triggeredAt    DateTime      @default(now()) @map("triggered_at") @db.Timestamptz
+  acknowledgedBy String?       @map("acknowledged_by") @db.Uuid
+  acknowledgedAt DateTime?     @map("acknowledged_at") @db.Timestamptz
+  resolvedBy     String?       @map("resolved_by") @db.Uuid
+  resolvedAt     DateTime?     @map("resolved_at") @db.Timestamptz
+  resolutionNote String?       @map("resolution_note")
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  container   Container? @relation(fields: [containerId], references: [id], onDelete: SetNull)
+  voyage      Voyage?    @relation(fields: [voyageId], references: [id], onDelete: SetNull)
+  vehicle     Vehicle?   @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  ackUser     Profile?   @relation("AlertAckBy", fields: [acknowledgedBy], references: [id], onDelete: SetNull)
+  resolveUser Profile?   @relation("AlertResolvedBy", fields: [resolvedBy], references: [id], onDelete: SetNull)
+
+  @@map("alerts")
+}
+
+model ContainerEvent {
+  id          String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  containerId String                   @map("container_id") @db.Uuid
+  eventType   ContainerEventType       @map("event_type")
+  eventTime   DateTime                 @map("event_time") @db.Timestamptz
+  fromStatus  ContainerStatus?         @map("from_status")
+  toStatus    ContainerStatus?         @map("to_status")
+  fromSlotId  String?                  @map("from_slot_id") @db.Uuid
+  toSlotId    String?                  @map("to_slot_id") @db.Uuid
+  voyageId    String?                  @map("voyage_id") @db.Uuid
+  description String?
+  sourceType  ContainerEventSourceType @default(system) @map("source_type")
+  actorUserId String?                  @map("actor_user_id") @db.Uuid
+  metadata    Json?
+  createdAt   DateTime                 @default(now()) @map("created_at") @db.Timestamptz
+
+  container Container @relation(fields: [containerId], references: [id], onDelete: Cascade)
+  fromSlot  YardSlot? @relation("EventFromSlot", fields: [fromSlotId], references: [id], onDelete: SetNull)
+  toSlot    YardSlot? @relation("EventToSlot", fields: [toSlotId], references: [id], onDelete: SetNull)
+  voyage    Voyage?   @relation(fields: [voyageId], references: [id], onDelete: SetNull)
+  actorUser Profile?  @relation("EventActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@map("container_events")
+}

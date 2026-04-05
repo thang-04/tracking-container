@@ -1,0 +1,23 @@
+{
+  "skill_name": "screen-crawler",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Phân tích cấu trúc routes của project này và tạo file screens.yaml",
+      "expected_output": "File screens.yaml với đầy đủ thông tin: app metadata, danh sách routes, từng route có path, component, file, params, functionalities, api_calls, ui_elements",
+      "files": ["sample-app/src/App.jsx", "sample-app/src/pages/Home.jsx", "sample-app/src/pages/Users.jsx"]
+    },
+    {
+      "id": 2,
+      "prompt": "Liệt kê tất cả các màn hình trong ứng dụng và chức năng của từng màn hình",
+      "expected_output": "Danh sách các màn hình kèm theo chức năng chính của mỗi màn hình",
+      "files": ["sample-app/src/App.jsx", "sample-app/src/pages/Home.jsx", "sample-app/src/pages/Users.jsx"]
+    },
+    {
+      "id": 3,
+      "prompt": "Tạo tài liệu về cấu trúc ứng dụng web, bao gồm tất cả routes và nội dung hiển thị của mỗi trang",
+      "expected_output": "Tài liệu chi tiết về routes và nội dung UI của từng trang",
+      "files": ["sample-app/src/App.jsx", "sample-app/src/pages/Home.jsx", "sample-app/src/pages/Users.jsx"]
+    }
+  ]
+}
