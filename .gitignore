@@ -12,6 +12,7 @@ node_modules/
 .next/
 .DS_Store
 .docs/
+/docs/
 /lib/generated/prisma
 
 .vercel
