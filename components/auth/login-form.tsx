@@ -94,11 +94,6 @@ export function LoginForm({ returnTo }: { returnTo?: string | null }) {
       )}
 
       <SubmitButton />
-
-      <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm leading-6 text-slate-300">
-        Tài khoản được cấp bởi quản trị viên hệ thống. Nếu bạn chưa có quyền truy
-        cập, hãy liên hệ bộ phận vận hành hoặc quản trị hệ thống.
-      </div>
     </form>
   )
 }

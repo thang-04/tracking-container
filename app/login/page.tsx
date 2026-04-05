@@ -19,14 +19,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <AuthShell
-      eyebrow="Mission Control Login"
-      title="Một cổng truy cập cho toàn bộ điều phối container đường thủy."
-      description="Đăng nhập bằng email đã được cấp quyền. Hệ thống sẽ tự đưa bạn vào khu nội bộ hoặc customer portal theo hồ sơ nghiệp vụ."
+      eyebrow="Đăng nhập hệ thống"
+      title="Đăng nhập để tiếp tục vận hành và theo dõi container."
+      description="Dùng email đã được cấp quyền để vào đúng không gian làm việc."
+      compact
     >
       <AuthCard
-        eyebrow="Đăng nhập hệ thống"
+        eyebrow="Đăng nhập"
         title="Truy cập Tracking Container"
-        description="Dùng email công việc hoặc email khách hàng đã được cấp quyền trong hệ thống."
+        description="Nhập email và mật khẩu của bạn."
       >
         {params.reset === "success" && (
           <div className="mb-5 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-slate-200">

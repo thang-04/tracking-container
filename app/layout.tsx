@@ -20,19 +20,22 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
+        url: '/tracking-container-mark-32.png',
+        sizes: '32x32',
+        type: 'image/png',
       },
       {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
+        url: '/tracking-container-mark.png',
+        sizes: '512x512',
+        type: 'image/png',
       },
       {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
+        url: '/tracking-container-mark-192.png',
+        sizes: '192x192',
+        type: 'image/png',
       },
     ],
-    apple: '/apple-icon.png',
+    apple: '/tracking-container-apple-icon.png',
   },
 }
 
@@ -48,7 +51,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="vi" className="dark">
+    <html lang="vi">
       <body className={`${poppins.variable} ${firaCode.variable} font-sans antialiased`}>
         {children}
         <Analytics />
