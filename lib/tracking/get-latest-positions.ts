@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma"
+import { getOptionalPrismaClient } from "@/lib/prisma"
 
 type LatestPositionRecord = {
   id: string
@@ -11,6 +11,12 @@ type LatestPositionRecord = {
 }
 
 export async function getLatestPositions(): Promise<LatestPositionRecord[]> {
+  const prisma = getOptionalPrismaClient()
+
+  if (!prisma) {
+    return []
+  }
+
   const positions = await prisma.trackingPosition.findMany({
     orderBy: [{ vehicleId: "asc" }, { recordedAt: "desc" }],
     select: {

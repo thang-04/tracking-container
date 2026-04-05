@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma"
+import { getOptionalPrismaClient } from "@/lib/prisma"
 
 type VehicleRecord = {
   id: string
@@ -12,6 +12,12 @@ type VehicleRecord = {
 }
 
 export async function getVehicles(): Promise<VehicleRecord[]> {
+  const prisma = getOptionalPrismaClient()
+
+  if (!prisma) {
+    return []
+  }
+
   const vehicles = await prisma.vehicle.findMany({
     orderBy: { name: "asc" },
     select: {

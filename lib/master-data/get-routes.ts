@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma"
+import { getOptionalPrismaClient } from "@/lib/prisma"
 
 type RouteCheckpointRecord = {
   id: string
@@ -28,6 +28,12 @@ type RouteRecord = {
 }
 
 export async function getRoutes(): Promise<RouteRecord[]> {
+  const prisma = getOptionalPrismaClient()
+
+  if (!prisma) {
+    return []
+  }
+
   const routes = await prisma.route.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },

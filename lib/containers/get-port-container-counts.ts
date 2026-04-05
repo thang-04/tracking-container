@@ -1,5 +1,5 @@
 import { ContainerStatus } from "@/lib/generated/prisma/enums"
-import prisma from "@/lib/prisma"
+import { getOptionalPrismaClient } from "@/lib/prisma"
 
 type PortContainerCount = {
   portId: string
@@ -7,6 +7,12 @@ type PortContainerCount = {
 }
 
 export async function getPortContainerCounts(): Promise<PortContainerCount[]> {
+  const prisma = getOptionalPrismaClient()
+
+  if (!prisma) {
+    return []
+  }
+
   const counts = await prisma.container.groupBy({
     by: ["currentPortId"],
     where: {

@@ -1,5 +1,5 @@
 import { VoyageLoadStatus, VoyageStatus } from "@/lib/generated/prisma/enums"
-import prisma from "@/lib/prisma"
+import { getOptionalPrismaClient } from "@/lib/prisma"
 
 type ActiveVoyageRecord = {
   id: string
@@ -33,6 +33,12 @@ const ACTIVE_LOAD_STATUSES: VoyageLoadStatus[] = [
 ]
 
 export async function getActiveVoyages(): Promise<ActiveVoyageRecord[]> {
+  const prisma = getOptionalPrismaClient()
+
+  if (!prisma) {
+    return []
+  }
+
   const voyages = await prisma.voyage.findMany({
     where: {
       status: {

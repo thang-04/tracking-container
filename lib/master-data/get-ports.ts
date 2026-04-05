@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma"
+import { getOptionalPrismaClient } from "@/lib/prisma"
 
 type PortRecord = {
   id: string
@@ -10,6 +10,12 @@ type PortRecord = {
 }
 
 export async function getPorts(): Promise<PortRecord[]> {
+  const prisma = getOptionalPrismaClient()
+
+  if (!prisma) {
+    return []
+  }
+
   const ports = await prisma.port.findMany({
     where: {
       isActive: true,
