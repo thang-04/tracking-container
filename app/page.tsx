@@ -1,21 +1,22 @@
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { KPICard } from "@/components/dashboard/kpi-card"
-import { OperationsChart } from "@/components/dashboard/operations-chart"
 import { EfficiencyChart } from "@/components/dashboard/efficiency-chart"
-import { MapPreview } from "@/components/dashboard/map-preview"
+import { KPICard } from "@/components/dashboard/kpi-card"
+import { LiveTrackingPreview } from "@/components/dashboard/live-tracking-preview"
+import { OperationsChart } from "@/components/dashboard/operations-chart"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
-import { Package, Truck, Ship, TrendingUp } from "lucide-react"
+import { getTrackingOverview } from "@/lib/tracking/get-tracking-overview"
+import { Package, Ship, TrendingUp, Truck } from "lucide-react"
 
-export default function DashboardPage() {
+export const dynamic = "force-dynamic"
+
+export default async function DashboardPage() {
+  const overview = await getTrackingOverview({ mode: "preview", vehicleLimit: 3, routeLimit: 2 })
+
   return (
-    <DashboardLayout
-      title="Bảng điều khiển"
-      description="Tổng quan hoạt động cảng và logistics"
-    >
-      {/* KPI Cards */}
+    <DashboardLayout title="Bảng điều khiển" description="Tổng quan hoạt động cảng và logistics">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Tổng Container"
+          title="Tổng container"
           value="1,284"
           change="+12% so với tháng trước"
           changeType="positive"
@@ -31,7 +32,7 @@ export default function DashboardPage() {
           iconColor="bg-accent/10 text-accent"
         />
         <KPICard
-          title="Xe tải sẵn sàng"
+          title="Xe sẵn sàng"
           value="42"
           change="85% đội xe sẵn sàng"
           changeType="neutral"
@@ -48,15 +49,13 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Charts Row */}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <OperationsChart />
         <EfficiencyChart />
       </div>
 
-      {/* Map and Activity Row */}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <MapPreview />
+        <LiveTrackingPreview overview={overview} />
         <RecentActivity />
       </div>
     </DashboardLayout>

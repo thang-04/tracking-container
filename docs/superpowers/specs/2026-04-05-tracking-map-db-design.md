@@ -92,6 +92,7 @@ Không chọn giữ nguyên page client rồi vá từng mảng cứng vì chỉ
 - `lib/fleet/get-vehicles.ts`: đọc phương tiện
 - `lib/transport/get-active-voyages.ts`: đọc chuyến đang hiệu lực và manifest summary
 - `lib/tracking/get-latest-positions.ts`: đọc vị trí mới nhất theo phương tiện
+- `lib/containers/get-port-container-counts.ts`: đọc số container còn hiệu lực theo cảng
 - `lib/tracking/types.ts`: DTO và shared types cho tracking UI
 - `lib/tracking/get-tracking-overview.ts`: compose các API/read-service nghiệp vụ thành payload chung cho UI
 - `lib/tracking/build-tracking-view-model.ts`: chuyển database record sang view-model cho UI
@@ -178,7 +179,21 @@ HTTP path tương ứng nếu cần:
 
 - `/api/tracking/positions/latest`
 
-### 6.6. Tracking screen compose API
+### 6.6. Container API
+
+Phục vụ:
+
+- số container theo cảng
+
+Reader đề xuất:
+
+- `lib/containers/get-port-container-counts.ts`
+
+HTTP path tương ứng nếu cần:
+
+- `/api/containers/port-counts`
+
+### 6.7. Tracking screen compose API
 
 Phục vụ riêng cho UI `/map` và preview dashboard.
 
@@ -403,6 +418,7 @@ Phạm vi:
 - `lib/fleet/get-vehicles.ts`
 - `lib/transport/get-active-voyages.ts`
 - `lib/tracking/get-latest-positions.ts`
+- `lib/containers/get-port-container-counts.ts`
 - `lib/tracking/types.ts`
 - `lib/tracking/get-tracking-overview.ts`
 - `lib/tracking/build-tracking-view-model.ts`
