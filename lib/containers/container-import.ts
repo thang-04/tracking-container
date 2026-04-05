@@ -174,14 +174,47 @@ type SpreadsheetContainerParseResult = {
   sourceSummary: string
 }
 
+/** Cot CSV noi bo (snake_case) -> truong canonical (camelCase) de serialize dung. */
+const CONTAINER_IMPORT_HEADER_TO_DATA_KEY = {
+  container_no: "containerNo",
+  container_type_code: "containerTypeCode",
+  customer_code: "customerCode",
+  route_code: "routeCode",
+  shipping_line_code: "shippingLineCode",
+  gross_weight_kg: "grossWeightKg",
+  eta: "eta",
+  bill_no: "billNo",
+  seal_no: "sealNo",
+  current_port_code: "currentPortCode",
+  current_yard_code: "currentYardCode",
+  current_block_code: "currentBlockCode",
+  current_slot_code: "currentSlotCode",
+  status_hint: "statusHint",
+  note: "note",
+} satisfies Record<ContainerImportHeader, keyof CanonicalContainerImportRow>
+
+function getSerializedImportCell(row: ParsedContainerImportRow, header: ContainerImportHeader) {
+  const raw = row.rawData[header]
+
+  if (raw != null && String(raw).trim() !== "") {
+    return String(raw).trim()
+  }
+
+  const dataKey = CONTAINER_IMPORT_HEADER_TO_DATA_KEY[header]
+  const value = row.data[dataKey]
+
+  if (value == null || value === "") {
+    return ""
+  }
+
+  return String(value)
+}
+
 function serializeRowsToCanonicalCsv(rows: ParsedContainerImportRow[]) {
   const headerLine = CONTAINER_IMPORT_HEADERS.join(",")
   const dataLines = rows.map((row) =>
     CONTAINER_IMPORT_HEADERS.map((header) => {
-      const value =
-        header === "status_hint"
-          ? row.data.statusHint
-          : row.rawData[header] ?? (row.data as Record<string, string | null>)[header]
+      const value = getSerializedImportCell(row, header)
 
       if (!value) {
         return ""

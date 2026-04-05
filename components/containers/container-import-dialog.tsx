@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useEffect, useState } from "react"
+import { startTransition, useActionState, useEffect, useRef, useState } from "react"
 import { useFormStatus } from "react-dom"
 import { CircleAlert, LoaderCircle, Upload } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -187,6 +187,8 @@ function SpreadsheetImportForm({
   )
   const [customerCode, setCustomerCode] = useState("")
   const [routeCode, setRouteCode] = useState("")
+  const stagedFileRef = useRef<File | null>(null)
+  const [hasStagedFile, setHasStagedFile] = useState(false)
   const canImport =
     state.status === "preview" &&
     !!state.summary &&
@@ -203,11 +205,38 @@ function SpreadsheetImportForm({
   }, [onSuccess, router, state.status])
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault()
+        const formElement = event.currentTarget
+        const submitEvent = event.nativeEvent as SubmitEvent
+        const submitter = submitEvent.submitter as HTMLButtonElement | null
+        const formData = new FormData(formElement)
+
+        if (submitter?.name === "intent" && submitter.value) {
+          formData.set("intent", submitter.value)
+        }
+
+        const staged = stagedFileRef.current
+
+        if (staged && staged.size > 0) {
+          formData.set("csvFile", staged)
+        }
+
+        startTransition(() => {
+          formAction(formData)
+        })
+      }}
+    >
       <input type="hidden" name="mode" value="csv" />
       <input type="hidden" name="importCustomerCode" value={customerCode} />
       <input type="hidden" name="importRouteCode" value={routeCode} />
-      <input type="hidden" name="persistedSourceText" value={state.sourceText ?? ""} />
+      <input
+        type="hidden"
+        name="persistedSourceText"
+        value={hasStagedFile ? "" : (state.sourceText ?? "")}
+      />
       <input type="hidden" name="persistedFileName" value={state.sourceFileName ?? ""} />
       <input type="hidden" name="persistedSourceSummary" value={state.sourceSummary ?? ""} />
 
@@ -217,6 +246,11 @@ function SpreadsheetImportForm({
           name="csvFile"
           type="file"
           accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          onChange={(event) => {
+            const nextFile = event.target.files?.[0] ?? null
+            stagedFileRef.current = nextFile
+            setHasStagedFile(Boolean(nextFile))
+          }}
         />
         <p className="text-sm text-muted-foreground">
           Ho tro `CSV template noi bo`, bang discharge day du (`Unit Nbr`, `Type ISO`, `Line Op`,
