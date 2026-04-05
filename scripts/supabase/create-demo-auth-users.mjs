@@ -28,6 +28,12 @@ const DEMO_USERS = [
     fullName: "Pham Lan Customer",
     role: "customer",
   },
+    {
+        email: "duathui512@tracking.com",
+        password: "duathui512",
+        fullName: "Tran Minh Admin",
+        role: "admin",
+    },
 ]
 
 function parseEnvFile(contents) {

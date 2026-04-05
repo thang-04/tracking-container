@@ -15,8 +15,8 @@ import {
   toContainerImportValidationContext,
 } from "@/lib/containers/container-master-data"
 import {
-  parseCsvContainerRows,
   parseEdiContainerRows,
+  parseSpreadsheetContainerRows,
   validateContainerImportRows,
   type ParsedContainerImportRow,
 } from "@/lib/containers/container-import"
@@ -64,6 +64,7 @@ function createManualContainerRow(formData: FormData): ParsedContainerImportRow 
       currentSlotCode: hasYardLocation
         ? readStringValue(formData, "currentSlotCode") || null
         : null,
+      statusHint: null,
       note: readStringValue(formData, "note") || null,
     },
   }
@@ -167,6 +168,7 @@ function buildImportErrorState(
   source?: {
     text: string | null
     fileName: string
+    summary?: string
   },
 ): ContainerImportActionState {
   return {
@@ -174,7 +176,8 @@ function buildImportErrorState(
     message,
     issues,
     sourceText: source?.text ?? undefined,
-    sourceFileName: source?.text ? source.fileName : undefined,
+    sourceFileName: source?.text !== null && source?.text !== undefined ? source.fileName : undefined,
+    sourceSummary: source?.summary,
   }
 }
 
@@ -224,28 +227,76 @@ export async function previewOrImportContainersAction(
   const auth = await requireInternalAccess()
   const intent = readStringValue(formData, "intent") === "import" ? "import" : "preview"
   const mode = readStringValue(formData, "mode") === "edi" ? "edi" : "csv"
-  const inputPayload =
-    mode === "csv"
-      ? await readCsvImportSourcePayload(formData)
-      : await readEdiImportSourcePayload(formData)
+  const customerCode = readStringValue(formData, "importCustomerCode")
+  const routeCode = readStringValue(formData, "importRouteCode")
+  const persistedSourceSummary = readStringValue(formData, "persistedSourceSummary")
 
-  if (inputPayload.errors.length > 0 || !inputPayload.text) {
-    return buildImportErrorState(
-      inputPayload.errors[0] ?? "Khong doc duoc file import.",
-      inputPayload.errors,
-    )
+  let fileName = "containers.csv"
+  let inputErrors: string[] = []
+  let parsed:
+    | ReturnType<typeof parseSpreadsheetContainerRows>
+    | (ReturnType<typeof parseEdiContainerRows> & {
+        persistedText: string
+        sourceSummary: string
+      })
+    | null = null
+
+  if (mode === "csv") {
+    const spreadsheetPayload = await readCsvImportSourcePayload(formData)
+
+    fileName = spreadsheetPayload.fileName
+    inputErrors = spreadsheetPayload.errors
+
+    if (spreadsheetPayload.errors.length === 0) {
+      if (spreadsheetPayload.format === "xlsx") {
+        if (spreadsheetPayload.bytes) {
+          parsed = parseSpreadsheetContainerRows(
+            spreadsheetPayload.fileName,
+            spreadsheetPayload.bytes,
+            {
+              customerCode,
+              routeCode,
+            },
+          )
+        }
+      } else if (spreadsheetPayload.text) {
+        parsed = parseSpreadsheetContainerRows(
+          spreadsheetPayload.fileName,
+          spreadsheetPayload.text,
+          {
+            customerCode,
+            routeCode,
+          },
+        )
+      }
+    }
+  } else {
+    const ediPayload = await readEdiImportSourcePayload(formData)
+
+    fileName = ediPayload.fileName
+    inputErrors = ediPayload.errors
+
+    if (ediPayload.errors.length === 0 && ediPayload.text) {
+      parsed = {
+        ...parseEdiContainerRows(ediPayload.text),
+        persistedText: ediPayload.text,
+        sourceSummary: persistedSourceSummary || `EDI: ${ediPayload.fileName}`,
+      }
+    }
   }
 
-  const parsed =
-    mode === "csv"
-      ? parseCsvContainerRows(inputPayload.text)
-      : parseEdiContainerRows(inputPayload.text)
+  if (!parsed) {
+    return buildImportErrorState(
+      inputErrors[0] ?? "Khong doc duoc file import.",
+      inputErrors,
+    )
+  }
 
   if (parsed.errors.length > 0) {
     if (intent === "import") {
       await persistRejectedContainerImportBatch([], {
         sourceMode: mode,
-        fileName: inputPayload.fileName,
+        fileName,
         uploadedBy: auth.userId,
         note: parsed.errors.join(" | "),
       })
@@ -255,8 +306,9 @@ export async function previewOrImportContainersAction(
       parsed.errors[0] ?? "Khong doc duoc noi dung import.",
       parsed.errors,
       {
-        text: inputPayload.text,
-        fileName: inputPayload.fileName,
+        text: parsed.persistedText ? parsed.persistedText : null,
+        fileName,
+        summary: parsed.sourceSummary,
       },
     )
   }
@@ -273,8 +325,9 @@ export async function previewOrImportContainersAction(
       validation.summary.invalidRows > 0
         ? "Can sua het loi truoc khi nhap du lieu."
         : "Du lieu hop le. Ban co the nhap vao he thong.",
-    sourceText: inputPayload.text,
-    sourceFileName: inputPayload.fileName,
+    sourceText: parsed.persistedText,
+    sourceFileName: fileName,
+    sourceSummary: parsed.sourceSummary,
     summary: validation.summary,
     rows: buildPreviewRows(validation.rows),
     issues:
@@ -290,7 +343,7 @@ export async function previewOrImportContainersAction(
   if (validation.summary.invalidRows > 0) {
     await persistRejectedContainerImportBatch(validation.rows, {
       sourceMode: mode,
-      fileName: inputPayload.fileName,
+      fileName,
       uploadedBy: auth.userId,
       note: "Import blocked because validation errors remain.",
     })
@@ -301,7 +354,7 @@ export async function previewOrImportContainersAction(
   try {
     const result = await persistImportedContainerBatch(validation.rows, {
       sourceMode: mode,
-      fileName: inputPayload.fileName,
+      fileName,
       uploadedBy: auth.userId,
     })
 
@@ -309,12 +362,12 @@ export async function previewOrImportContainersAction(
 
     return {
       status: "success",
-      message: `Da import ${result.importedCount} container tu ${inputPayload.fileName}.`,
+      message: `Da import ${result.importedCount} container tu ${fileName}.`,
     }
   } catch (error) {
     await persistRejectedContainerImportBatch(validation.rows, {
       sourceMode: mode,
-      fileName: inputPayload.fileName,
+      fileName,
       uploadedBy: auth.userId,
       note: error instanceof Error ? error.message : "Import transaction failed.",
     })

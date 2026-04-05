@@ -10,6 +10,7 @@ import {
   initialContainerImportActionState,
   type ContainerImportActionState,
 } from "@/lib/containers/container-action-state"
+import type { ContainerFormOptions } from "@/lib/containers/container-master-data"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,6 +21,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -30,6 +39,8 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+
+const NONE_VALUE = "__none__"
 
 function ImportActions({
   canImport,
@@ -162,12 +173,20 @@ function ImportStateAlert({ state }: { state: ContainerImportActionState }) {
   )
 }
 
-function CsvImportForm({ onSuccess }: { onSuccess: () => void }) {
+function SpreadsheetImportForm({
+  formOptions,
+  onSuccess,
+}: {
+  formOptions: ContainerFormOptions
+  onSuccess: () => void
+}) {
   const router = useRouter()
   const [state, formAction] = useActionState(
     previewOrImportContainersAction,
     initialContainerImportActionState,
   )
+  const [customerCode, setCustomerCode] = useState("")
+  const [routeCode, setRouteCode] = useState("")
   const canImport =
     state.status === "preview" &&
     !!state.summary &&
@@ -186,16 +205,79 @@ function CsvImportForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="mode" value="csv" />
+      <input type="hidden" name="importCustomerCode" value={customerCode} />
+      <input type="hidden" name="importRouteCode" value={routeCode} />
       <input type="hidden" name="persistedSourceText" value={state.sourceText ?? ""} />
       <input type="hidden" name="persistedFileName" value={state.sourceFileName ?? ""} />
+      <input type="hidden" name="persistedSourceSummary" value={state.sourceSummary ?? ""} />
 
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">File CSV</label>
-        <Input name="csvFile" type="file" accept=".csv,text/csv" />
+        <label className="text-sm font-medium text-foreground">File CSV / Excel</label>
+        <Input
+          name="csvFile"
+          type="file"
+          accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        />
         <p className="text-sm text-muted-foreground">
-          Header bat buoc: `container_no`, `container_type_code`, `customer_code`, `route_code`.
+          Ho tro `CSV template noi bo`, bang discharge day du (`Unit Nbr`, `Type ISO`, `Line Op`,
+          `Weight (kg)`, `POD`, `Seal Nbr1`, …) hoac sheet tom tat kieu `Sheet1` (`Container no`,
+          `Container Size`, `Departure Date`, `Invoice Number`, tau/chuyen).
         </p>
       </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label>Khach hang ap cho batch</Label>
+          <Select
+            value={customerCode || NONE_VALUE}
+            onValueChange={(value) => setCustomerCode(value === NONE_VALUE ? "" : value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Chon khach hang" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE_VALUE}>Tu file CSV noi bo / chua chon</SelectItem>
+              {formOptions.customers.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Bat buoc khi import file Excel discharge list.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Tuyen ap cho batch</Label>
+          <Select
+            value={routeCode || NONE_VALUE}
+            onValueChange={(value) => setRouteCode(value === NONE_VALUE ? "" : value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Chon tuyen" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE_VALUE}>Tu file CSV noi bo / chua chon</SelectItem>
+              {formOptions.routes.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Bat buoc khi import file Excel discharge list.
+          </p>
+        </div>
+      </div>
+
+      {state.sourceSummary ? (
+        <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+          Nguon du lieu: {state.sourceSummary}
+        </div>
+      ) : null}
 
       <ImportStateAlert state={state} />
       <ImportPreview state={state} />
@@ -256,7 +338,11 @@ function EdiImportForm({ onSuccess }: { onSuccess: () => void }) {
   )
 }
 
-export function ContainerImportDialog() {
+export function ContainerImportDialog({
+  formOptions,
+}: {
+  formOptions: ContainerFormOptions
+}) {
   const [open, setOpen] = useState(false)
   const [dialogKey, setDialogKey] = useState(0)
 
@@ -264,7 +350,7 @@ export function ContainerImportDialog() {
     <>
       <Button variant="outline" onClick={() => setOpen(true)}>
         <Upload className="mr-2 size-4" />
-        Import CSV/EDI
+        Import CSV/Excel/EDI
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -272,19 +358,20 @@ export function ContainerImportDialog() {
           <DialogHeader>
             <DialogTitle>Import container</DialogTitle>
             <DialogDescription>
-              Chon `CSV` hoac `EDI`, xem truoc loi, sua het roi moi nhap vao he thong.
+              Chon `CSV / Excel` hoac `EDI`, xem truoc loi, sua het roi moi nhap vao he thong.
             </DialogDescription>
           </DialogHeader>
 
           <Tabs defaultValue="csv" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="csv">CSV</TabsTrigger>
+              <TabsTrigger value="csv">CSV / Excel</TabsTrigger>
               <TabsTrigger value="edi">EDI</TabsTrigger>
             </TabsList>
 
             <TabsContent value="csv">
-              <CsvImportForm
+              <SpreadsheetImportForm
                 key={`csv-${dialogKey}`}
+                formOptions={formOptions}
                 onSuccess={() => {
                   setOpen(false)
                   setDialogKey((current) => current + 1)

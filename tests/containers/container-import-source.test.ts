@@ -1,6 +1,8 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 
+import * as XLSX from "xlsx"
+
 import {
   readCsvImportSourcePayload,
   readEdiImportSourcePayload,
@@ -48,4 +50,31 @@ test("uses persisted EDI text when textarea and file are both empty on import su
   assert.deepEqual(result.errors, [])
   assert.equal(result.fileName, "preview.edi")
   assert.match(result.text ?? "", /EQD\+MSKU1234567/)
+})
+
+test("reads xlsx workbook uploads as spreadsheet bytes", async () => {
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.aoa_to_sheet([["Unit Nbr", "Type ISO"], ["MSKU1234567", "45G0"]]),
+    "UnitFacilityVisit_20260316_1005",
+  )
+
+  const workbookBuffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" })
+  const formData = new FormData()
+  formData.set(
+    "csvFile",
+    new File([new Uint8Array(workbookBuffer)], "FINAL DISCHARGE LIST.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
+  )
+
+  const result = await readCsvImportSourcePayload(formData)
+
+  assert.deepEqual(result.errors, [])
+  assert.equal(result.format, "xlsx")
+  assert.equal(result.fileName, "FINAL DISCHARGE LIST.xlsx")
+  assert.equal(result.text, null)
+  assert.ok(result.bytes)
+  assert.ok(result.bytes.length > 0)
 })

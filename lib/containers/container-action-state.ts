@@ -46,6 +46,7 @@ export type ContainerImportActionState = {
   issues?: string[]
   sourceText?: string
   sourceFileName?: string
+  sourceSummary?: string
   summary?: {
     totalRows: number
     validRows: number

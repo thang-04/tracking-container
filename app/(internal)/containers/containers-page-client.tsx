@@ -99,8 +99,8 @@ export function ContainersPageClient({
               <div className="space-y-1">
                 <CardTitle className="text-base font-medium">Danh sach container</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  `Them container` va `Import CSV/EDI` dang ghi truc tiep vao Supabase.
-                  `Xuat file` se mo sau.
+                  `Them container` va `Import CSV/Excel/EDI` dang ghi truc tiep vao
+                  Supabase. `Xuat file` se mo sau.
                 </p>
               </div>
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
@@ -136,7 +136,7 @@ export function ContainersPageClient({
                 <Button variant="outline" size="icon" disabled>
                   <Download className="size-4" />
                 </Button>
-                <ContainerImportDialog />
+                <ContainerImportDialog formOptions={formOptions} />
                 <ContainerCreateDialog formOptions={formOptions} />
               </div>
             </div>
@@ -150,8 +150,8 @@ export function ContainersPageClient({
                   </EmptyMedia>
                   <EmptyTitle>Chua co container trong co so du lieu</EmptyTitle>
                   <EmptyDescription>
-                    Ban co the them thu cong hoac import CSV/EDI. Khi insert thanh cong,
-                    danh sach va KPI se tu dong cap nhat tai day.
+                    Ban co the them thu cong hoac import CSV/Excel/EDI. Khi insert
+                    thanh cong, danh sach va KPI se tu dong cap nhat tai day.
                   </EmptyDescription>
                 </EmptyHeader>
               </Empty>

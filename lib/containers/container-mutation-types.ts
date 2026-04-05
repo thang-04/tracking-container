@@ -15,6 +15,7 @@ export const CONTAINER_IMPORT_OPTIONAL_HEADERS = [
   "current_yard_code",
   "current_block_code",
   "current_slot_code",
+  "status_hint",
   "note",
 ] as const
 
@@ -35,6 +36,7 @@ export type ContainerWorkflowStatus =
   | "hold"
 
 export type ContainerWorkflowCustomsStatus = "pending" | "cleared" | "hold"
+export type ContainerStatusHint = ContainerWorkflowStatus | "yard"
 
 export type ContainerMutationSource = "manual" | "edi"
 
@@ -52,13 +54,14 @@ export type CanonicalContainerImportRow = {
   currentYardCode: string | null
   currentBlockCode: string | null
   currentSlotCode: string | null
+  statusHint: ContainerStatusHint | null
   note: string | null
 }
 
 export type ParsedContainerImportRow = {
   rowNo: number
   sourceType: "csv" | "edi"
-  rawData: Partial<Record<ContainerImportHeader, string | null>>
+  rawData: Record<string, string | null>
   data: CanonicalContainerImportRow
 }
 

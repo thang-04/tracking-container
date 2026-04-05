@@ -28,6 +28,7 @@ function createRow(
       currentYardCode: "YD-CL-01",
       currentBlockCode: "A1",
       currentSlotCode: "A1-01-01",
+      statusHint: null,
       note: "Lo hang test",
       ...overrides,
     },

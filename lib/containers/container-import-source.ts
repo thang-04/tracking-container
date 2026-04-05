@@ -3,6 +3,29 @@ function readStringValue(formData: FormData, key: string) {
   return typeof value === "string" ? value : ""
 }
 
+export type SpreadsheetImportSourcePayload =
+  | {
+      format: "csv"
+      text: string
+      bytes: null
+      fileName: string
+      errors: string[]
+    }
+  | {
+      format: "xlsx"
+      text: null
+      bytes: Uint8Array
+      fileName: string
+      errors: string[]
+    }
+  | {
+      format: "csv"
+      text: null
+      bytes: null
+      fileName: string
+      errors: string[]
+    }
+
 function readPersistedSourcePayload(formData: FormData) {
   const text = readStringValue(formData, "persistedSourceText").trim()
   const fileName = readStringValue(formData, "persistedFileName").trim()
@@ -17,13 +40,29 @@ function readPersistedSourcePayload(formData: FormData) {
   }
 }
 
-export async function readCsvImportSourcePayload(formData: FormData) {
+export async function readCsvImportSourcePayload(
+  formData: FormData,
+): Promise<SpreadsheetImportSourcePayload> {
   const fileValue = formData.get("csvFile")
 
   if (fileValue instanceof File && fileValue.size > 0) {
+    const fileName = fileValue.name || "containers.csv"
+
+    if (fileName.toLowerCase().endsWith(".xlsx")) {
+      return {
+        format: "xlsx" as const,
+        text: null,
+        bytes: new Uint8Array(await fileValue.arrayBuffer()),
+        fileName,
+        errors: [] as string[],
+      }
+    }
+
     return {
+      format: "csv" as const,
       text: await fileValue.text(),
-      fileName: fileValue.name || "containers.csv",
+      bytes: null,
+      fileName,
       errors: [] as string[],
     }
   }
@@ -32,17 +71,21 @@ export async function readCsvImportSourcePayload(formData: FormData) {
 
   if (persisted) {
     return {
+      format: "csv" as const,
       text: persisted.text,
+      bytes: null,
       fileName: persisted.fileName,
       errors: [] as string[],
     }
   }
 
   return {
+    format: "csv" as const,
     text: null,
+    bytes: null,
     fileName: "containers.csv",
-    errors: ["Vui long chon file CSV de kiem tra."],
-  }
+    errors: ["Vui long chon file CSV hoac Excel de kiem tra."],
+  } satisfies SpreadsheetImportSourcePayload
 }
 
 export async function readEdiImportSourcePayload(formData: FormData) {
