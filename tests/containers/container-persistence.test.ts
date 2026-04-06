@@ -21,6 +21,22 @@ const baseResolvedInput = {
   billNo: "BL-001",
   sealNo: "SEAL-001",
   note: "Lo hang test",
+  // Bổ sung các trường mới
+  category: null,
+  vState: null,
+  tState: null,
+  stow: null,
+  grp: null,
+  sealNo2: null,
+  frghtKind: null,
+  obActualVisit: null,
+  reqsPower: null,
+  tempRequiredC: null,
+  rlh: null,
+  rdh: null,
+  isOog: null,
+  imdg: null,
+  hazardous: null,
 }
 
 test("builds manual create payload with one created event when no yard location exists", () => {
@@ -95,6 +111,22 @@ test("builds edi batch row payload with only supported database columns", () => 
       currentSlotCode: null,
       statusHint: "at_seaport_yard",
       note: null,
+      // Bổ sung các trường mới
+      category: "Import",
+      vState: "Active",
+      tState: "Yard",
+      stow: "MAEMTY",
+      grp: null,
+      sealNo2: null,
+      frghtKind: "Empty",
+      obActualVisit: "CAG611E",
+      reqsPower: "No",
+      tempRequiredC: null,
+      rlh: "RLH-001",
+      rdh: "RDH-002",
+      isOog: "No",
+      imdg: null,
+      hazardous: "No",
     },
   }
 

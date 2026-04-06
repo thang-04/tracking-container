@@ -1,29 +1,3 @@
-export type CreateContainerFieldName =
-  | "containerNo"
-  | "containerTypeCode"
-  | "customerCode"
-  | "routeCode"
-  | "shippingLineCode"
-  | "grossWeightKg"
-  | "eta"
-  | "billNo"
-  | "sealNo"
-  | "currentPortCode"
-  | "currentYardCode"
-  | "currentBlockCode"
-  | "currentSlotCode"
-  | "note"
-
-export type CreateContainerActionState = {
-  status: "idle" | "error" | "success"
-  message?: string
-  issues?: string[]
-  fieldErrors?: Partial<Record<CreateContainerFieldName, string>>
-}
-
-export const initialCreateContainerActionState: CreateContainerActionState = {
-  status: "idle",
-}
 
 export type ContainerImportPreviewRow = {
   rowNo: number

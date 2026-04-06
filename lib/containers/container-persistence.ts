@@ -9,7 +9,10 @@ import {
   getContainerWorkflowReferenceData,
   toContainerImportValidationContext,
 } from "./container-master-data.ts"
-import { validateContainerImportRows } from "./container-import.ts"
+import {
+  validateContainerImportRows,
+  resolveContainerImportRow,
+} from "./container-import.ts"
 import type {
   ContainerMutationSource,
   ParsedContainerImportRow,
@@ -46,7 +49,23 @@ export function buildContainerMutationPlan(
     grossWeightKg: input.grossWeightKg,
     billNo: input.billNo,
     sealNo: input.sealNo,
+    sealNo2: input.sealNo2,
     note: input.note,
+    // Các trường mới từ 7 nhóm dữ liệu
+    category: input.category,
+    vState: input.vState,
+    tState: input.tState,
+    stow: input.stow,
+    grp: input.grp,
+    frghtKind: input.frghtKind,
+    obActualVisit: input.obActualVisit,
+    reqsPower: input.reqsPower,
+    tempRequiredC: input.tempRequiredC,
+    rlh: input.rlh,
+    rdh: input.rdh,
+    isOog: input.isOog,
+    imdg: input.imdg,
+    hazardous: input.hazardous,
     sourceType: options.mutationSource,
     ediBatchId: options.ediBatchId ?? null,
     lastEventAt: options.now,
@@ -412,6 +431,7 @@ export async function persistContainerImportPreviewBatch(
 export async function getContainerImportPreviewBatch(batchId: string) {
   const prisma = await getPrismaClient()
 
+  console.log(`[DEBUG] Fetching import preview batch: ${batchId}`)
   const batch = await prisma.ediBatch.findUnique({
     where: {
       id: batchId,
@@ -426,10 +446,15 @@ export async function getContainerImportPreviewBatch(batchId: string) {
   })
 
   if (!batch) {
+    console.log(`[DEBUG] Batch not found: ${batchId}`)
     return null
   }
 
+  console.log(`[DEBUG] Found batch: ${batch.batchNo}, rows count: ${batch.rows.length}`)
+
   const sourceMode = batch.filePath.includes("/edi/") ? "edi" : "csv"
+  const referenceData = await getContainerWorkflowReferenceData()
+  const validationContext = toContainerImportValidationContext(referenceData)
 
   return {
     batch: {
@@ -452,10 +477,18 @@ export async function getContainerImportPreviewBatch(batchId: string) {
         rawData: row.rawData as Record<string, string | null>,
       })
 
+      // Tái xác thực để lấy warnings mới nhất dựa trên Master Data hiện tại
+      const rowValidation = resolveContainerImportRow(
+        previewRow,
+        validationContext,
+        new Set(),
+        new Set(),
+        new Set()
+      )
+
       return {
         id: row.id,
         rowNo: row.rowNo,
-        rawData: previewRow.rawData,
         containerNo: previewRow.data.containerNo,
         containerTypeCode: previewRow.data.containerTypeCode,
         customerCode: previewRow.data.customerCode,
@@ -471,8 +504,9 @@ export async function getContainerImportPreviewBatch(batchId: string) {
         currentSlotCode: previewRow.data.currentSlotCode,
         statusHint: previewRow.data.statusHint,
         note: previewRow.data.note,
-        isValid: row.validationStatus === "valid",
-        errors: row.errorMessage ? row.errorMessage.split(" | ").filter(Boolean) : [],
+        isValid: rowValidation.isValid,
+        errors: rowValidation.errors,
+        warnings: rowValidation.warnings,
         importedContainerId: row.importedContainerId,
       }
     }),
@@ -519,8 +553,9 @@ export async function importContainerImportPreviewBatch(
   const validationContext = toContainerImportValidationContext(referenceData)
   const validation = validateContainerImportRows(previewRows, validationContext)
 
-  if (validation.summary.invalidRows > 0) {
-    throw new Error("Bản xem trước đã thay đổi và vẫn còn dòng lỗi. Hãy kiểm tra lại.")
+  // Cho phép nhập một phần nếu có ít nhất 1 dòng hợp lệ
+  if (validation.summary.validRows === 0) {
+    throw new Error("Không có dòng nào hợp lệ để nhập.")
   }
 
   return prisma.$transaction(async (tx) => {
@@ -529,9 +564,9 @@ export async function importContainerImportPreviewBatch(
         id: batch.id,
       },
       data: {
-        status: "imported",
-        successRows: validation.summary.totalRows,
-        errorRows: 0,
+        status: validation.summary.invalidRows > 0 ? "partial" : "imported",
+        successRows: validation.summary.validRows,
+        errorRows: validation.summary.invalidRows,
         processedAt: now,
       },
       select: {
@@ -540,8 +575,90 @@ export async function importContainerImportPreviewBatch(
       },
     })
 
+    // 1. Tự động tạo Master Data thiếu
+    const missingTypes = new Set<string>()
+    const missingPorts = new Set<string>()
+    const missingLines = new Set<string>()
+    const missingCustomers = new Set<string>()
+
+    validation.rows.forEach((row) => {
+      if (!row.isValid) return // Chỉ tạo MD cho dòng hợp lệ
+
+      if (row.data.containerTypeCode && !row.resolved?.containerTypeId) {
+        missingTypes.add(row.data.containerTypeCode)
+      }
+      if (row.data.currentPortCode && !row.resolved?.currentPortId) {
+        missingPorts.add(row.data.currentPortCode)
+      }
+      if (row.data.shippingLineCode && !row.resolved?.shippingLineId) {
+        missingLines.add(row.data.shippingLineCode)
+      }
+      if (row.data.customerCode && !row.resolved?.customerId) {
+        missingCustomers.add(row.data.customerCode)
+      }
+    })
+
+    // Upsert Master Data
+    for (const code of missingTypes) {
+      await tx.containerType.upsert({
+        where: { code },
+        update: {},
+        create: { code, name: code, isActive: true },
+      })
+    }
+    for (const code of missingPorts) {
+      await tx.port.upsert({
+        where: { code },
+        update: {},
+        create: { code, name: code, portType: "seaport", isActive: true },
+      })
+    }
+    for (const code of missingLines) {
+      await tx.shippingLine.upsert({
+        where: { code },
+        update: {},
+        create: { code, name: code, isActive: true },
+      })
+    }
+    for (const code of missingCustomers) {
+      await tx.customer.upsert({
+        where: { code },
+        update: {},
+        create: { code, name: code, isActive: true },
+      })
+    }
+
+    // 2. Tái nạp Context để lấy ID mới
+    const typeMap = new Map((await tx.containerType.findMany({ select: { id: true, code: true } })).map(x => [x.code, x.id]))
+    const portMap = new Map((await tx.port.findMany({ select: { id: true, code: true } })).map(x => [x.code, x.id]))
+    const lineMap = new Map((await tx.shippingLine.findMany({ select: { id: true, code: true } })).map(x => [x.code, x.id]))
+    const custMap = new Map((await tx.customer.findMany({ select: { id: true, code: true } })).map(x => [x.code, x.id]))
+
     for (const [index, row] of validation.rows.entries()) {
-      const plan = buildContainerMutationPlan(row.resolved!, {
+      const batchRow = batch.rows[index]
+      if (!batchRow) {
+        throw new Error("Bản xem trước không đồng bộ với hàng import.")
+      }
+
+      if (!row.resolved || !row.isValid) {
+        await tx.ediBatchRow.update({
+          where: { id: batchRow.id },
+          data: {
+            validationStatus: "invalid",
+            importStatus: "rejected",
+            errorMessage: row.errors.join(" | ") || "Lỗi không xác định",
+          },
+        })
+        continue
+      }
+
+      // Cập nhật IDs vừa được tạo (hoặc đã có)
+      if (row.data.containerTypeCode) row.resolved.containerTypeId = typeMap.get(row.data.containerTypeCode) ?? null
+      if (row.data.currentPortCode) row.resolved.currentPortId = portMap.get(row.data.currentPortCode) ?? null
+      if (row.data.shippingLineCode) row.resolved.shippingLineId = lineMap.get(row.data.shippingLineCode) ?? null
+      if (row.data.customerCode) row.resolved.customerId = custMap.get(row.data.customerCode) ?? null
+
+      const plan = buildContainerMutationPlan(row.resolved, {
         mutationSource: "edi",
         actorUserId: normalizeNullableUuid(options.uploadedBy),
         now,
@@ -550,9 +667,7 @@ export async function importContainerImportPreviewBatch(
 
       const container = await tx.container.create({
         data: plan.container,
-        select: {
-          id: true,
-        },
+        select: { id: true },
       })
 
       await tx.containerEvent.createMany({
@@ -561,11 +676,6 @@ export async function importContainerImportPreviewBatch(
           containerId: container.id,
         })) as Prisma.ContainerEventCreateManyInput[],
       })
-
-      const batchRow = batch.rows[index]
-      if (!batchRow) {
-        throw new Error("Bản xem trước không đồng bộ với hàng import.")
-      }
 
       await tx.ediBatchRow.update({
         where: {
@@ -583,7 +693,7 @@ export async function importContainerImportPreviewBatch(
     return {
       batchId: updatedBatch.id,
       batchNo: updatedBatch.batchNo,
-      importedCount: validation.summary.totalRows,
+      importedCount: validation.summary.validRows,
     }
-  })
+  }, { maxWait: 15000, timeout: 120000 })
 }

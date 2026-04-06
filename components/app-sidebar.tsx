@@ -78,6 +78,7 @@ function getInitials(value: string) {
 export function AppSidebar() {
   const pathname = usePathname()
   const mockMode = isLocalAuthMockEnabled()
+  const [mounted, setMounted] = useState(false)
   const [account, setAccount] = useState<{
     email: string | null
     fullName: string | null
@@ -85,6 +86,10 @@ export function AppSidebar() {
     email: null,
     fullName: null,
   })
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (mockMode) {
@@ -163,44 +168,54 @@ export function AppSidebar() {
       <div className="border-t border-sidebar-border p-4">
         <form id="sidebar-signout-form" action={signOutAction} />
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="flex w-full items-center gap-3 rounded-lg bg-sidebar-accent px-3 py-2 text-left transition-colors hover:bg-sidebar-accent/80"
-            >
-              <Avatar className="h-9 w-9">
-                <AvatarFallback className="bg-primary text-xs font-medium text-primary-foreground">
-                  {accountInitials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-sidebar-foreground">
-                  {accountName}
-                </span>
-                <span className="block truncate text-xs text-sidebar-foreground/60">
-                  {account.email ?? "Mở menu tài khoản"}
-                </span>
-              </div>
-              <ChevronsUpDown className="h-4 w-4 text-sidebar-foreground/60" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="end" className="w-64">
-            <DropdownMenuLabel className="space-y-1">
-              <div className="text-sm font-medium">{accountName}</div>
-              <div className="text-xs font-normal text-muted-foreground">
-                {account.email ?? "Phiên nội bộ đang hoạt động"}
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild variant="destructive">
-              <button type="submit" form="sidebar-signout-form" className="w-full">
-                <LogOut className="h-4 w-4" />
-                Đăng xuất
+        {!mounted ? (
+          <div className="flex w-full items-center gap-3 rounded-lg bg-sidebar-accent/50 px-3 py-2 opacity-50">
+            <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 w-20 rounded bg-muted animate-pulse" />
+              <div className="h-2 w-32 rounded bg-muted animate-pulse" />
+            </div>
+          </div>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 rounded-lg bg-sidebar-accent px-3 py-2 text-left transition-colors hover:bg-sidebar-accent/80"
+              >
+                <Avatar className="h-9 w-9">
+                  <AvatarFallback className="bg-primary text-xs font-medium text-primary-foreground">
+                    {accountInitials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-sidebar-foreground">
+                    {accountName}
+                  </span>
+                  <span className="block truncate text-xs text-sidebar-foreground/60">
+                    {account.email ?? "Mở menu tài khoản"}
+                  </span>
+                </div>
+                <ChevronsUpDown className="h-4 w-4 text-sidebar-foreground/60" />
               </button>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="end" className="w-64">
+              <DropdownMenuLabel className="space-y-1">
+                <div className="text-sm font-medium">{accountName}</div>
+                <div className="text-xs font-normal text-muted-foreground">
+                  {account.email ?? "Phiên nội bộ đang hoạt động"}
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild variant="destructive">
+                <button type="submit" form="sidebar-signout-form" className="w-full">
+                  <LogOut className="h-4 w-4" />
+                  Đăng xuất
+                </button>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </aside>
   )

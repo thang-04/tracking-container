@@ -15,28 +15,16 @@ const firaCode = Fira_Code({
 });
 
 export const metadata: Metadata = {
-  title: 'Tracking Container | Quản lý container',
-  description: 'Nền tảng theo dõi container, hành trình và vận tải sà lan từ cảng biển đến cảng cạn',
-  icons: {
-    icon: [
-      {
-        url: '/tracking-container-mark-32.png',
-        sizes: '32x32',
-        type: 'image/png',
-      },
-      {
-        url: '/tracking-container-mark.png',
-        sizes: '512x512',
-        type: 'image/png',
-      },
-      {
-        url: '/tracking-container-mark-192.png',
-        sizes: '192x192',
-        type: 'image/png',
-      },
-    ],
-    apple: '/tracking-container-apple-icon.png',
-  },
+    title: 'Tracking Container | Quản lý container',
+    description: 'Nền tảng theo dõi container, hành trình và vận tải sà lan từ cảng biển đến cảng cạn',
+    icons: {
+        icon: [
+            { url: '/favicon.ico', sizes: '32x32' },
+            { url: '/tracking-container-mark-192.png', sizes: '192x192', type: 'image/png' },
+            { url: '/tracking-container-mark.png', sizes: '512x512', type: 'image/png' },
+        ],
+        apple: '/tracking-container-apple-icon.png',
+    },
 }
 
 export const viewport: Viewport = {

@@ -70,6 +70,12 @@ export async function getContainerDirectory(): Promise<ContainerDirectoryItem[]>
       currentStatus: true,
       eta: true,
       grossWeightKg: true,
+      category: true,
+      vState: true,
+      tState: true,
+      customsStatus: true,
+      billNo: true,
+      sealNo: true,
       containerType: {
         select: {
           code: true,
@@ -126,11 +132,19 @@ export async function getContainerDirectory(): Promise<ContainerDirectoryItem[]>
 
   return containers.map((container) => {
     const status = container.currentStatus as ContainerDirectoryStatus
+    const getCustomsStatusLabel = (sts: string) => {
+      switch (sts) {
+        case "pending": return "Chờ xử lý"
+        case "cleared": return "Đã thông quan"
+        case "hold": return "Đang bị giữ"
+        default: return sts
+      }
+    }
 
     return {
       id: container.id,
       containerNo: container.containerNo,
-      typeLabel: container.containerType.code || container.containerType.name,
+      typeLabel: container.containerType?.code || container.containerType?.name || "N/A",
       status,
       statusLabel: getContainerStatusMeta(status).label,
       locationLabel: getLocationLabel({
@@ -151,6 +165,12 @@ export async function getContainerDirectory(): Promise<ContainerDirectoryItem[]>
       shippingLineLabel: container.shippingLine?.name ?? null,
       customerLabel: container.customer?.name ?? null,
       routeLabel: container.route?.name ?? null,
+      categoryLabel: container.category ?? null,
+      vStateLabel: container.vState === "Active" ? "Hoạt động" : (container.vState === "Inactive" ? "Ngừng HĐ" : container.vState),
+      tStateLabel: container.tState === "Loaded" ? "Có hàng" : (container.tState === "Empty" ? "Rỗng" : container.tState),
+      customsStatusLabel: getCustomsStatusLabel(container.customsStatus),
+      billNo: container.billNo ?? null,
+      sealNo: container.sealNo ?? null,
     }
   })
 }

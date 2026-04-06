@@ -1,9 +1,8 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { Download, Package, Search } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { ChevronLeft, ChevronRight, Download, Package, Search } from "lucide-react"
 
-import { ContainerCreateDialog } from "@/components/containers/container-create-dialog"
 import { ContainerImportDialog } from "@/components/containers/container-import-dialog"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Badge } from "@/components/ui/badge"
@@ -42,6 +41,26 @@ import {
 } from "@/lib/containers/container-view-model"
 import { cn } from "@/lib/utils"
 
+/* ── Pagination constants ──────────────────────────────── */
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
+const DEFAULT_PAGE_SIZE = 20
+
+/** Build a compact page range like [1, '…', 4, 5, 6, '…', 10] */
+function buildPageRange(currentPage: number, totalPages: number): (number | "ellipsis")[] {
+  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1)
+  const pages: (number | "ellipsis")[] = [1]
+  const left = Math.max(2, currentPage - 1)
+  const right = Math.min(totalPages - 1, currentPage + 1)
+  if (left > 2) pages.push("ellipsis")
+  for (let i = left; i <= right; i++) pages.push(i)
+  if (right < totalPages - 1) pages.push("ellipsis")
+  pages.push(totalPages)
+  return pages
+}
+
+/* ── Components ────────────────────────────────────────── */
+
 function StatCard(props: {
   title: string
   value: number
@@ -66,6 +85,8 @@ export function ContainersPageClient({
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] =
     useState<ContainerDirectoryFilterStatus>("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
   const stats = useMemo(() => buildContainerDirectoryStats(containers), [containers])
   const filteredContainers = useMemo(
@@ -77,10 +98,31 @@ export function ContainersPageClient({
     [containers, searchTerm, statusFilter],
   )
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, statusFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filteredContainers.length / pageSize))
+  // Clamp page if data shrinks (e.g. after filter)
+  const safePage = Math.min(currentPage, totalPages)
+
+  const paginatedContainers = useMemo(() => {
+    const start = (safePage - 1) * pageSize
+    return filteredContainers.slice(start, start + pageSize)
+  }, [filteredContainers, safePage, pageSize])
+
+  const handlePageSizeChange = useCallback((value: string) => {
+    setPageSize(Number(value))
+    setCurrentPage(1)
+  }, [])
+
+  const pageRange = buildPageRange(safePage, totalPages)
+
   return (
     <DashboardLayout
       title="Quản lý container"
-      description="Theo dõi container, trạng thái hiện tại và đích đến từ dữ liệu thật"
+      description="Theo dõi container, trạng thái hiện tại và đích đến."
     >
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -95,10 +137,6 @@ export function ContainersPageClient({
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="space-y-1">
                 <CardTitle className="text-base font-medium">Danh sách container</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Thêm container tại đây. Import CSV/Excel/EDI sẽ mở modal trước, sau đó chuyển sang
-                  page preview riêng để xem dữ liệu dài dễ hơn.
-                </p>
               </div>
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 <div className="relative">
@@ -134,7 +172,6 @@ export function ContainersPageClient({
                   <Download className="size-4" />
                 </Button>
                 <ContainerImportDialog />
-                <ContainerCreateDialog formOptions={formOptions} />
               </div>
             </div>
           </CardHeader>
@@ -146,10 +183,6 @@ export function ContainersPageClient({
                     <Package />
                   </EmptyMedia>
                   <EmptyTitle>Chưa có container trong cơ sở dữ liệu</EmptyTitle>
-                  <EmptyDescription>
-                    Bạn có thể thêm thủ công hoặc mở modal import CSV/Excel/EDI để tạo phiên xem
-                    trước riêng. Khi ghi thành công, danh sách và KPI sẽ tự động cập nhật tại đây.
-                  </EmptyDescription>
                 </EmptyHeader>
               </Empty>
             ) : filteredContainers.length === 0 ? (
@@ -163,17 +196,16 @@ export function ContainersPageClient({
                     <TableHeader>
                       <TableRow className="bg-muted/50">
                         <TableHead>Mã container</TableHead>
-                        <TableHead>Loại</TableHead>
-                        <TableHead>Trạng thái</TableHead>
-                        <TableHead>Vị trí</TableHead>
-                        <TableHead>Đích đến</TableHead>
-                        <TableHead>Tuyến</TableHead>
-                        <TableHead>Dự kiến đến</TableHead>
-                        <TableHead>Trọng lượng</TableHead>
+                        <TableHead>Loại / Phân loại</TableHead>
+                        <TableHead>T/V State</TableHead>
+                        <TableHead>Trạng thái & Vị trí</TableHead>
+                        <TableHead>Hải quan & Chứng từ</TableHead>
+                        <TableHead>Đích đến / Tuyến</TableHead>
+                        <TableHead>Ngày dự kiến</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredContainers.map((container) => {
+                      {paginatedContainers.map((container) => {
                         const statusMeta = getContainerStatusMeta(container.status)
 
                         return (
@@ -186,26 +218,44 @@ export function ContainersPageClient({
                                 </p>
                               </div>
                             </TableCell>
-                            <TableCell>{container.typeLabel}</TableCell>
                             <TableCell>
-                              <Badge className={cn("border-transparent", statusMeta.className)}>
-                                {statusMeta.label}
-                              </Badge>
+                              <div className="space-y-1 font-medium text-sm">
+                                <p>{container.typeLabel}</p>
+                                <Badge variant="outline" className="text-[10px] px-1 h-4 font-normal">
+                                  {container.categoryLabel || "Chưa xác định"}
+                                </Badge>
+                              </div>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {container.locationLabel}
+                            <TableCell>
+                              <div className="flex gap-1 flex-col sm:flex-row text-xs">
+                                <span className={cn("px-1.5 py-0.5 rounded-sm bg-muted whitespace-nowrap", container.tStateLabel === "Có hàng" ? "bg-blue-100 text-blue-800" : "")}>{container.tStateLabel || "--"}</span>
+                                <span className={cn("px-1.5 py-0.5 rounded-sm bg-muted whitespace-nowrap", container.vStateLabel === "Hoạt động" ? "bg-green-100 text-green-800" : "")}>{container.vStateLabel || "--"}</span>
+                              </div>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {container.destinationLabel}
+                            <TableCell>
+                              <div className="space-y-1">
+                                <Badge className={cn("border-transparent", statusMeta.className)}>
+                                  {statusMeta.label}
+                                </Badge>
+                                <p className="text-xs text-muted-foreground break-words max-w-[150px]">
+                                  {container.locationLabel}
+                                </p>
+                              </div>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {container.routeLabel ?? "Chưa gắn tuyến"}
+                            <TableCell>
+                              <div className="space-y-1 text-xs">
+                                <p>HQ: <span className={cn("font-medium", container.customsStatusLabel === "Đã thông quan" ? "text-success" : "text-warning")}>{container.customsStatusLabel}</span></p>
+                                <p className="text-muted-foreground">BL: {container.billNo || "N/A"}</p>
+                                <p className="text-muted-foreground">Seal: {container.sealNo || "N/A"}</p>
+                              </div>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {container.etaLabel}
+                            <TableCell className="text-sm text-muted-foreground space-y-1 max-w-[150px] truncate">
+                              <p className="font-medium text-foreground">{container.destinationLabel}</p>
+                              <p className="text-xs">{container.routeLabel ?? "Chưa gắn tuyến"}</p>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {container.weightLabel}
+                            <TableCell className="text-sm text-muted-foreground space-y-1">
+                              <p>{container.etaLabel}</p>
+                              <p className="text-xs font-mono">{container.weightLabel}</p>
                             </TableCell>
                           </TableRow>
                         )
@@ -213,8 +263,76 @@ export function ContainersPageClient({
                     </TableBody>
                   </Table>
                 </div>
-                <div className="pt-4 text-sm text-muted-foreground">
-                  Hiển thị {filteredContainers.length} trong {containers.length} container.
+
+                {/* ── Pagination bar ──────────────────────────── */}
+                <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  {/* Left: info + page size */}
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <span>
+                      Hiển thị {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filteredContainers.length)} trong {filteredContainers.length} container
+                      {filteredContainers.length !== containers.length && (
+                        <span className="ml-1">(tổng {containers.length})</span>
+                      )}
+                    </span>
+                    <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
+                      <SelectTrigger className="h-8 w-[72px] text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAGE_SIZE_OPTIONS.map((size) => (
+                          <SelectItem key={size} value={String(size)}>
+                            {size} / trang
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Right: page buttons */}
+                  {totalPages > 1 && (
+                    <nav className="flex items-center gap-1" aria-label="Phân trang">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="size-8"
+                        disabled={safePage <= 1}
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        aria-label="Trang trước"
+                      >
+                        <ChevronLeft className="size-4" />
+                      </Button>
+
+                      {pageRange.map((item, idx) =>
+                        item === "ellipsis" ? (
+                          <span key={`e-${idx}`} className="flex size-8 items-center justify-center text-xs text-muted-foreground">
+                            …
+                          </span>
+                        ) : (
+                          <Button
+                            key={item}
+                            variant={item === safePage ? "default" : "outline"}
+                            size="icon"
+                            className="size-8 text-xs"
+                            onClick={() => setCurrentPage(item)}
+                            aria-current={item === safePage ? "page" : undefined}
+                          >
+                            {item}
+                          </Button>
+                        ),
+                      )}
+
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="size-8"
+                        disabled={safePage >= totalPages}
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        aria-label="Trang sau"
+                      >
+                        <ChevronRight className="size-4" />
+                      </Button>
+                    </nav>
+                  )}
                 </div>
               </>
             )}

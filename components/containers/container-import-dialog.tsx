@@ -26,7 +26,7 @@ export function ContainerImportDialog() {
     <>
       <Button onClick={handleOpen}>
         <Upload className="mr-2 size-4" />
-        Nhập CSV/Excel/EDI
+        Nhập container
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>

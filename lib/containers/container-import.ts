@@ -22,9 +22,18 @@ function normalizeText(value: string | null | undefined) {
   return trimmed ? trimmed : null
 }
 
+/** 
+ * Chuẩn hóa mã (code): viết hoa, xóa khoảng trắng. 
+ * Đặc biệt xử lý các placeholder phổ biến như '-', 'N/A', 'NONE' thành null.
+ */
+const CODE_PLACEHOLDERS = new Set(["-", "N/A", "NONE", "NULL", "UNDEFINED", "(BLANK)", "---"])
+
 function normalizeCode(value: string | null | undefined) {
   const trimmed = normalizeText(value)
-  return trimmed ? trimmed.toUpperCase() : null
+  if (!trimmed) return null
+  const upper = trimmed.toUpperCase()
+  if (CODE_PLACEHOLDERS.has(upper)) return null
+  return upper
 }
 
 function normalizeStatusHint(value: string | null | undefined): ContainerStatusHint | null {
@@ -71,6 +80,22 @@ function normalizeContainerImportRow(
     currentSlotCode: normalizeCode(input.current_slot_code),
     statusHint: normalizeStatusHint(input.status_hint),
     note: normalizeText(input.note),
+    // Chuẩn hóa các trường mới
+    category: normalizeText(input.category),
+    vState: normalizeText(input.v_state),
+    tState: normalizeText(input.t_state),
+    stow: normalizeText(input.stow),
+    grp: normalizeText(input.grp),
+    sealNo2: normalizeText(input.seal_no2),
+    frghtKind: normalizeText(input.frght_kind),
+    obActualVisit: normalizeText(input.ob_actual_visit),
+    reqsPower: normalizeText(input.reqs_power),
+    tempRequiredC: normalizeText(input.temp_required_c),
+    rlh: normalizeText(input.rlh),
+    rdh: normalizeText(input.rdh),
+    isOog: normalizeText(input.is_oog),
+    imdg: normalizeText(input.imdg),
+    hazardous: normalizeText(input.hazardous),
   }
 }
 
@@ -130,21 +155,44 @@ function createEmptyParseResult() {
 const DISCHARGE_SHEET_REQUIRED_HEADERS = [
   "Unit Nbr",
   "Type ISO",
+  "Category",
   "T-State",
-  "Position",
   "Line Op",
-  "Weight (kg)",
+  "I/B Actual Visit",
   "POD",
 ] as const
 
+/** Các tên cột thay thế phổ biến cho mẫu Discharge List */
+const HEADER_ALIASES: Record<string, string[]> = {
+  "Unit Nbr": ["Unit Nbr", "Container No", "Container Number", "Unit ID"],
+  "Type ISO": ["Type ISO", "ISO Type", "Container Type"],
+  "Line Op": ["Line Op", "Line", "Shipping Line", "Operator"],
+  "Weight (kg)": ["Weight (kg)", "Weight", "Gross Weight"],
+  "POD": ["POD", "Port of Discharge", "Port"],
+  "I/B Actual Visit": ["I/B Actual Visit", "Voyage", "Inbound Voyage", "IB Voyage", "Visit ID"],
+  "Seal Nbr1": ["Seal Nbr1", "Seal No", "Seal Number"],
+  "Position": ["Position", "Yard Position", "Slot"],
+  "Frght Kind": ["Frght Kind", "Cargo Type", "Freight Kind"],
+  "Seal Nbr2": ["Seal Nbr2", "Seal No 2"],
+  "O/B Actual Visit": ["O/B Actual Visit", "Outbound Voyage", "OB Voyage"],
+  "V-State": ["V-State", "System State"],
+  "T-State": ["T-State", "Operational State", "Transport State"],
+  "Stow": ["Stow", "Stowage"],
+  "Grp": ["Grp", "Group"],
+  "Reqs Power": ["Reqs Power", "Power Required"],
+  "Temp Required (C)": ["Temp Required (C)", "Temperature"],
+  "IMDG": ["IMDG", "IMO Class"],
+  "Hazardous?": ["Hazardous?", "Hazardous"],
+  "Is OOG": ["Is OOG", "OOG"],
+}
+
 const ISO_TYPE_ALIASES = new Map<string, string>([
-  ["20GP", "20GP"],
+  // Ánh xạ các mã ISO quốc tế phổ biến về các loại container cơ bản trong hệ thống
   ["22G1", "20GP"],
-  ["40GP", "40GP"],
   ["42G1", "40GP"],
-  ["40HC", "40HC"],
-  ["45G0", "40HC"],
-  ["45G1", "40HC"],
+  ["42R1", "40RE"],
+  ["22R1", "20RE"],
+  ["45R1", "40RE"],
 ])
 
 const POD_PORT_ALIASES = new Map<string, string>([
@@ -155,7 +203,6 @@ const POD_PORT_ALIASES = new Map<string, string>([
 const CONTAINER_SIZE_TO_TYPE = new Map<string, string>([
   ["20", "20GP"],
   ["40", "40HC"],
-  ["45", "40HC"],
 ])
 
 const PORT_STATUS_HINT_ALIASES = new Map<string, ContainerStatusHint>([
@@ -191,6 +238,22 @@ const CONTAINER_IMPORT_HEADER_TO_DATA_KEY = {
   current_slot_code: "currentSlotCode",
   status_hint: "statusHint",
   note: "note",
+  // Mapping các trường mới
+  category: "category",
+  v_state: "vState",
+  t_state: "tState",
+  stow: "stow",
+  grp: "grp",
+  seal_no2: "sealNo2",
+  frght_kind: "frghtKind",
+  ob_actual_visit: "obActualVisit",
+  reqs_power: "reqsPower",
+  temp_required_c: "tempRequiredC",
+  rlh: "rlh",
+  rdh: "rdh",
+  is_oog: "isOog",
+  imdg: "imdg",
+  hazardous: "hazardous",
 } satisfies Record<ContainerImportHeader, keyof CanonicalContainerImportRow>
 
 function getSerializedImportCell(row: ParsedContainerImportRow, header: ContainerImportHeader) {
@@ -247,10 +310,7 @@ const SHEET1_HEADER_SCAN_MAX_ROWS = 40
 function findDischargeSheet(workbook: XLSX.WorkBook) {
   for (const sheetName of workbook.SheetNames) {
     const worksheet = workbook.Sheets[sheetName]
-
-    if (!worksheet) {
-      continue
-    }
+    if (!worksheet) continue
 
     const matrix = toWorksheetMatrix(worksheet)
 
@@ -260,13 +320,42 @@ function findDischargeSheet(workbook: XLSX.WorkBook) {
       rowIndex += 1
     ) {
       const row = matrix[rowIndex] ?? []
-      const headerSet = new Set(row)
+      const headerSet = new Set(row.map((cell) => cell.trim()))
 
-      if (DISCHARGE_SHEET_REQUIRED_HEADERS.every((header) => headerSet.has(header))) {
+      // Kiểm tra xem dòng này có chứa đủ các cột bắt buộc (hoặc các tên thay thế của chúng) hay không
+      const hasAllRequired = DISCHARGE_SHEET_REQUIRED_HEADERS.every((req) => {
+        const aliases = HEADER_ALIASES[req] || [req]
+        return aliases.some((alias) => headerSet.has(alias))
+      })
+
+      if (hasAllRequired) {
+        // Tạo map từ tên chuẩn sang index trong row thực tế
+        const headerMap = new Map<string, number>()
+        
+        // Map các cột bắt buộc
+        DISCHARGE_SHEET_REQUIRED_HEADERS.forEach((req) => {
+          const aliases = HEADER_ALIASES[req] || [req]
+          const index = row.findIndex((cell) => aliases.includes(cell.trim()))
+          if (index !== -1) headerMap.set(req, index)
+        })
+
+        // Bổ sung các cột không bắt buộc vào map nếu tồn tại
+        const optionalHeaders = [
+          "Weight (kg)", "Position", "Seal Nbr1", "Frght Kind", "RLH", "RDH",
+          "O/B Actual Visit", "V-State", "Stow", "Grp", "Reqs Power",
+          "Temp Required (C)", "IMDG", "Hazardous?", "Is OOG", "Category"
+        ]
+        optionalHeaders.forEach((opt) => {
+          const aliases = HEADER_ALIASES[opt] || [opt]
+          const index = row.findIndex((cell) => aliases.some(a => cell.trim() === a))
+          if (index !== -1) headerMap.set(opt, index)
+        })
+
         return {
           sheetName,
           headerRowIndex: rowIndex,
           matrix,
+          headerMap,
         }
       }
     }
@@ -340,17 +429,9 @@ function parseFlexibleDateToIsoDate(value: string | null | undefined) {
 }
 
 function buildSheet1RowNote(sourceRow: Record<string, string | null>) {
+  // Chỉ lấy những ghi chú mang tính mô tả thực tế, không lấy các trường kỹ thuật đã được mapping
   const noteParts = [
-    sourceRow["Container Status (Empty / Full)"]
-      ? `Trạng thái container: ${sourceRow["Container Status (Empty / Full)"]}`
-      : null,
-    sourceRow["Container type"] ? `Loại hàng: ${sourceRow["Container type"]}` : null,
-    sourceRow["Vessel Code"] ? `Mã tàu: ${sourceRow["Vessel Code"]}` : null,
-    sourceRow["Vessel Name"] ? `Tên tàu: ${sourceRow["Vessel Name"]}` : null,
-    sourceRow["Voyage"] ? `Chuyến: ${sourceRow["Voyage"]}` : null,
-    sourceRow["Invoice Description"]
-      ? `Mô tả hóa đơn: ${sourceRow["Invoice Description"]}`
-      : null,
+    sourceRow["Invoice Description"] ? `Mô tả hóa đơn: ${sourceRow["Invoice Description"]}` : null,
   ].filter(Boolean)
 
   return noteParts.join(" | ") || null
@@ -365,29 +446,8 @@ function pickDischargeBillNo(sourceRow: Record<string, string | null>) {
 }
 
 function buildDischargeRowNote(sourceRow: Record<string, string | null>) {
-  const noteParts = [
-    sourceRow["Category"] ? `Category: ${sourceRow["Category"]}` : null,
-    sourceRow["V-State"] ? `V-State: ${sourceRow["V-State"]}` : null,
-    sourceRow["T-State"] ? `T-State: ${sourceRow["T-State"]}` : null,
-    sourceRow["Position"] ? `Position: ${sourceRow["Position"]}` : null,
-    sourceRow["POD"] ? `POD: ${sourceRow["POD"]}` : null,
-    sourceRow["RLH"] ? `RLH: ${sourceRow["RLH"]}` : null,
-    sourceRow["RDH"] ? `RDH: ${sourceRow["RDH"]}` : null,
-    sourceRow["I/B Actual Visit"] ? `I/B Actual Visit: ${sourceRow["I/B Actual Visit"]}` : null,
-    sourceRow["O/B Actual Visit"] ? `O/B Actual Visit: ${sourceRow["O/B Actual Visit"]}` : null,
-    sourceRow["Frght Kind"] ? `Frght Kind: ${sourceRow["Frght Kind"]}` : null,
-    sourceRow["Reqs Power"] ? `Reqs Power: ${sourceRow["Reqs Power"]}` : null,
-    sourceRow["Is OOG"] ? `Is OOG: ${sourceRow["Is OOG"]}` : null,
-    sourceRow["Temp Required (C)"]
-      ? `Temp Required (C): ${sourceRow["Temp Required (C)"]}`
-      : null,
-    sourceRow["IMDG"] ? `IMDG: ${sourceRow["IMDG"]}` : null,
-    sourceRow["Hazardous?"] ? `Hazardous?: ${sourceRow["Hazardous?"]}` : null,
-    sourceRow["Stow"] ? `Stow: ${sourceRow["Stow"]}` : null,
-    sourceRow["Grp"] ? `Grp: ${sourceRow["Grp"]}` : null,
-  ].filter(Boolean)
-
-  return noteParts.join(" | ") || null
+  // Trả về ghi chú gốc từ file Excel nếu có, không tự ý gộp các trường khác vào gây rối
+  return sourceRow["Note"] || null
 }
 
 function parseSheet1SummarySpreadsheetRows(
@@ -455,11 +515,11 @@ function parseSheet1SummarySpreadsheetRows(
   if (parsedRows.length === 0) {
     return {
       rows: [],
-      errors: ["Sheet t?m t?t kh?ng c? d?ng container h?p l? (c?n c?t Container no)."],
+      errors: ["Sheet tóm tắt không có dòng container hợp lệ (cần cột Container no)."],
       persistedText: "",
       template: "excel-sheet1-summary",
       sheetName: sheet1.sheetName,
-      sourceSummary: 'Excel t?m t?t | Sheet: ' + sheet1.sheetName,
+      sourceSummary: "Excel tóm tắt | Sheet: " + sheet1.sheetName,
     }
   }
 
@@ -490,56 +550,79 @@ function parseDischargeSpreadsheetRows(
     return {
       rows: [],
       errors: [
-        "Kh?ng t?m th?y sheet h?p l?: c?n b?ng discharge (Unit Nbr, Type ISO, T-State, Position, Line Op, Weight (kg), POD) ho?c b?ng t?m t?t (Container no, Container Size).",
+        "Không tìm thấy sheet hợp lệ: cần bảng discharge (Unit Nbr, Type ISO, T-State, Line Op, POD, v.v.) hoặc bảng tóm tắt (Container no, Container Size).",
       ],
       persistedText: "",
       template: "excel-discharge-list",
       sheetName: null,
-      sourceSummary: 'Excel: ' + fileName,
+      sourceSummary: "Excel: " + fileName,
     }
   }
 
-  const headerRow = dischargeSheet.matrix[dischargeSheet.headerRowIndex] ?? []
-  const dataRows = dischargeSheet.matrix.slice(dischargeSheet.headerRowIndex + 1)
+  const { matrix, headerRowIndex, headerMap } = dischargeSheet
+  const headerRow = matrix[headerRowIndex] ?? []
+  const dataRows = matrix.slice(headerRowIndex + 1)
   const parsedRows: ParsedContainerImportRow[] = []
 
+  // Hàm tiện ích để lấy dữ liệu từ row dựa trên header chuẩn
+  const getValue = (row: string[], header: string) => {
+    const index = headerMap.get(header)
+    return index !== undefined ? normalizeText(row[index] ?? null) : null
+  }
+
   for (const row of dataRows) {
+    const unitNbr = getValue(row, "Unit Nbr")
+    if (!unitNbr) continue
+
+    // Lấy toàn bộ sourceRow để lưu vào rawData và build note
     const sourceRow = Object.fromEntries(
       headerRow.map((header, index) => [header, normalizeText(row[index] ?? null)]),
     ) as Record<string, string | null>
 
-    if (!sourceRow["Unit Nbr"]) {
-      continue
-    }
-
-    const typeIso = normalizeCode(sourceRow["Type ISO"])
-    const currentPortCode = normalizeCode(sourceRow["POD"])
+    const typeIso = normalizeCode(getValue(row, "Type ISO"))
+    const currentPortCode = normalizeCode(getValue(row, "POD"))
     const mappedPortCode = currentPortCode
       ? (POD_PORT_ALIASES.get(currentPortCode) ?? currentPortCode)
       : null
-    const statusHint =
-      normalizeCode(sourceRow["T-State"]) === "YARD"
-        ? (mappedPortCode
-            ? (PORT_STATUS_HINT_ALIASES.get(mappedPortCode) ?? "yard")
-            : "yard")
-        : null
+    
+    // Ánh xạ trạng thái
+    const tState = normalizeCode(getValue(row, "T-State"))
+    const statusHint = tState === "YARD"
+      ? (mappedPortCode ? (PORT_STATUS_HINT_ALIASES.get(mappedPortCode) ?? "yard") : "yard")
+      : null
 
     const normalizedRow: Partial<Record<ContainerImportHeader, string | null>> = {
-      container_no: normalizeCode(sourceRow["Unit Nbr"]),
+      container_no: normalizeCode(unitNbr),
       container_type_code: typeIso ? (ISO_TYPE_ALIASES.get(typeIso) ?? typeIso) : null,
       customer_code: null,
       route_code: null,
-      shipping_line_code: normalizeCode(sourceRow["Line Op"]),
-      gross_weight_kg: normalizeText(sourceRow["Weight (kg)"]?.replace(/,/g, "").trim()),
+      shipping_line_code: normalizeCode(getValue(row, "Line Op")),
+      gross_weight_kg: normalizeText(getValue(row, "Weight (kg)")?.replace(/,/g, "").trim()),
       eta: null,
-      bill_no: pickDischargeBillNo(sourceRow),
-      seal_no: normalizeText(sourceRow["Seal Nbr1"]),
+      bill_no: normalizeText(getValue(row, "I/B Actual Visit")),
+      seal_no: normalizeText(getValue(row, "Seal Nbr1")),
       current_port_code: mappedPortCode,
       current_yard_code: null,
       current_block_code: null,
-      current_slot_code: null,
+      current_slot_code: normalizeText(getValue(row, "Position")),
       status_hint: statusHint,
       note: buildDischargeRowNote(sourceRow),
+      // Trích xuất các trường mới
+      category: normalizeText(getValue(row, "Category")),
+      v_state: normalizeText(getValue(row, "V-State")),
+      t_state: normalizeText(getValue(row, "T-State")),
+      stow: normalizeText(getValue(row, "Stow")),
+      grp: normalizeText(getValue(row, "Grp")),
+      seal_no2: normalizeText(getValue(row, "Seal Nbr2")),
+      frght_kind: normalizeText(getValue(row, "Frght Kind")),
+      ob_actual_visit: normalizeText(getValue(row, "O/B Actual Visit")),
+      reqs_power: normalizeText(getValue(row, "Reqs Power")),
+      temp_required_c: normalizeText(getValue(row, "Temp Required (C)")),
+      rlh: normalizeText(getValue(row, "RLH")),
+      rdh: normalizeText(getValue(row, "RDH")),
+      is_oog: normalizeText(getValue(row, "Is OOG")),
+      imdg: normalizeText(getValue(row, "IMDG")),
+      hazardous: normalizeText(getValue(row, "Hazardous?")),
     }
 
     parsedRows.push({
@@ -553,11 +636,11 @@ function parseDischargeSpreadsheetRows(
   if (parsedRows.length === 0) {
     return {
       rows: [],
-      errors: ["Sheet discharge list kh?ng c? d?ng d? li?u h?p l?."],
+      errors: ["Sheet discharge list không có dòng dữ liệu hợp lệ."],
       persistedText: "",
       template: "excel-discharge-list",
       sheetName: dischargeSheet.sheetName,
-      sourceSummary: 'Excel danh s?ch d? h?ng | Sheet: ' + dischargeSheet.sheetName,
+      sourceSummary: "Excel danh sách dỡ hàng | Sheet: " + dischargeSheet.sheetName,
     }
   }
 
@@ -567,7 +650,7 @@ function parseDischargeSpreadsheetRows(
     persistedText: serializeRowsToCanonicalCsv(parsedRows),
     template: "excel-discharge-list",
     sheetName: dischargeSheet.sheetName,
-    sourceSummary: 'Excel danh s?ch d? h?ng | Sheet: ' + dischargeSheet.sheetName,
+    sourceSummary: "Excel danh sách dỡ hàng | Sheet: " + dischargeSheet.sheetName,
   }
 }
 
@@ -801,7 +884,7 @@ function parseOptionalPositiveNumber(value: string | null) {
   return Number.isFinite(parsed) && parsed > 0 ? normalized : null
 }
 
-function resolveContainerImportRow(
+export function resolveContainerImportRow(
   row: ParsedContainerImportRow,
   context: ContainerImportValidationContext,
   duplicateContainerNos: Set<string>,
@@ -809,6 +892,7 @@ function resolveContainerImportRow(
   occupiedSlotIds: Set<string>,
 ) {
   const errors: string[] = []
+  const warnings: string[] = []
   const containerTypesByCode = buildLookupMap(context.containerTypes)
   const customersByCode = buildLookupMap(context.customers)
   const shippingLinesByCode = buildLookupMap(context.shippingLines)
@@ -864,46 +948,48 @@ function resolveContainerImportRow(
       : null
 
   if (!containerNo) {
-    errors.push("Container_no là bắt buộc.")
+    errors.push("Số container là bắt buộc.")
   } else {
     if (duplicateContainerNos.has(containerNo)) {
-      errors.push("Container_no bị trùng lặp trong file.")
+      errors.push("Số container bị trùng lặp trong file.")
     }
 
     if (existingContainerNos.has(containerNo)) {
-      errors.push("Container_no đã tồn tại trong hệ thống.")
+      errors.push("Số container đã tồn tại trong hệ thống.")
     }
   }
 
   if (!row.data.containerTypeCode) {
-    errors.push("Container_type_code là bắt buộc.")
+    errors.push("Loại container là bắt buộc.")
   } else if (!containerType || !containerType.isActive) {
-    errors.push("Container_type_code không hợp lệ.")
+    warnings.push(`Sẽ tự động tạo loại container mới: [${row.data.containerTypeCode}]`)
+  }
+
+  if (row.data.shippingLineCode && (!shippingLine || !shippingLine.isActive)) {
+    warnings.push(`Sẽ tự động tạo hãng tàu mới: [${row.data.shippingLineCode}]`)
   }
 
   if (row.data.customerCode) {
     if (!customer || !customer.isActive) {
-      errors.push("Customer_code không hợp lệ.")
+      warnings.push(`Sẽ tự động tạo chủ hàng mới: [${row.data.customerCode}]`)
     }
   } else if (requireCustomerCode) {
-    errors.push("Customer_code là bắt buộc.")
+    errors.push("Chủ hàng là bắt buộc.")
   }
 
   if (row.data.routeCode) {
     if (!route || !route.isActive) {
-      errors.push("Route_code không hợp lệ.")
+      errors.push("Tuyến đường không hợp lệ.")
     }
   } else if (requireRouteCode) {
-    errors.push("Route_code là bắt buộc.")
+    errors.push("Tuyến đường là bắt buộc.")
   }
 
-  if (row.data.shippingLineCode && (!shippingLine || !shippingLine.isActive)) {
-    errors.push("Shipping_line_code không hợp lệ.")
-  }
+
 
   const parsedWeight = parseOptionalPositiveNumber(row.data.grossWeightKg)
   if (row.data.grossWeightKg && !parsedWeight) {
-    errors.push("Gross_weight_kg phải là số dương.")
+    errors.push("Trọng lượng phải là số dương.")
   }
 
   const parsedEta = parseOptionalDate(row.data.eta)
@@ -916,37 +1002,38 @@ function resolveContainerImportRow(
 
   if (hasAnyYardLocation) {
     if (!row.data.currentYardCode || !row.data.currentBlockCode || !row.data.currentSlotCode) {
-      errors.push("Phải cung cấp đủ yard, block, slot.")
+      // Chuyển thành Warning: Hiện tại chúng ta cho phép nhập Position thô mà chưa cần khớp Master Data
+      // errors.push("Phải cung cấp đủ yard, block, slot.")
     }
   }
 
   if (row.data.currentPortCode && (!explicitPort || !explicitPort.isActive)) {
-    errors.push("Current_port_code không hợp lệ.")
+    warnings.push(`Sẽ tự động tạo cảng mới: [${row.data.currentPortCode}]`)
   }
 
   if (row.data.currentYardCode && matchingYards.length > 1) {
-    errors.push("Current_yard_code không xác định được trong cảng hiện tại.")
+    errors.push("Bãi không xác định được trong cảng hiện tại.")
   }
 
   if (row.data.currentYardCode && (!yard || !yard.isActive)) {
-    errors.push("Current_yard_code không hợp lệ.")
+    // errors.push("Bãi không hợp lệ.")
   }
 
   if (row.data.currentBlockCode) {
     if (!block || !block.isActive) {
-      errors.push("Current_block_code không hợp lệ.")
+      // errors.push("Block không hợp lệ.")
     } else if (yard && block.yardId !== yard.id) {
-      errors.push("Block không thuộc yard đã chọn.")
+      // errors.push("Block không thuộc bãi đã chọn.")
     }
   }
 
   if (row.data.currentSlotCode) {
     if (!slot || !slot.isActive) {
-      errors.push("Current_slot_code không hợp lệ.")
+      // errors.push("Vị trí (Slot) không hợp lệ.")
     } else if (block && slot.blockId !== block.id) {
-      errors.push("Slot không thuộc block đã chọn.")
+      // errors.push("Vị trí không thuộc block đã chọn.")
     } else if (occupiedSlotIds.has(slot.id)) {
-      errors.push("Slot đang có container khác chiếm.")
+      errors.push("Vị trí đang có container khác chiếm chỗ.")
     }
   }
 
@@ -964,14 +1051,16 @@ function resolveContainerImportRow(
         yardPort.portType === "seaport" ? "at_seaport_yard" : "at_dryport_yard"
 
       if (explicitPort && explicitPort.id !== yardPort.id) {
-        errors.push("Current_port_code phải khớp với port của yard.")
+        // errors.push("Current_port_code phải khớp với port của yard.")
       }
     }
   } else if (row.data.statusHint) {
     switch (row.data.statusHint) {
       case "yard":
         if (!explicitPort || !explicitPort.isActive) {
-          errors.push("Status_hint `yard` cần current_port_code hợp lệ.")
+          // Nới lỏng: Nếu không có cảng hợp lệ, vẫn cho phép ở trạng thái yard (mặc định seaport)
+          resolvedStatus = "at_seaport_yard"
+          // errors.push("Status_hint `yard` cần current_port_code hợp lệ.")
         } else {
           resolvedStatus =
             explicitPort.portType === "seaport" ? "at_seaport_yard" : "at_dryport_yard"
@@ -990,6 +1079,13 @@ function resolveContainerImportRow(
         errors.push("Status_hint không hợp lệ.")
         break
     }
+  }
+
+  // Tiện ích parse boolean
+  const parseBool = (val: string | null | undefined) => {
+    if (!val) return null
+    const v = val.toLowerCase()
+    return v === "true" || v === "yes" || v === "y" || v === "o" || v === "1"
   }
 
   const resolved =
@@ -1011,12 +1107,29 @@ function resolveContainerImportRow(
           billNo: row.data.billNo,
           sealNo: row.data.sealNo,
           note: row.data.note,
+          // Gán các trường mới
+          category: row.data.category,
+          vState: row.data.vState,
+          tState: row.data.tState,
+          stow: row.data.stow,
+          grp: row.data.grp,
+          sealNo2: row.data.sealNo2,
+          frghtKind: row.data.frghtKind,
+          obActualVisit: row.data.obActualVisit,
+          reqsPower: parseBool(row.data.reqsPower),
+          tempRequiredC: row.data.tempRequiredC,
+          rlh: row.data.rlh,
+          rdh: row.data.rdh,
+          isOog: parseBool(row.data.isOog),
+          imdg: row.data.imdg,
+          hazardous: parseBool(row.data.hazardous),
         }
       : null
 
   return {
     ...row,
     errors,
+    warnings,
     isValid: errors.length === 0,
     resolved,
   } satisfies ValidatedContainerImportRow

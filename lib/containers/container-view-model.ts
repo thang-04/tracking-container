@@ -22,6 +22,12 @@ export type ContainerDirectoryItem = {
   shippingLineLabel: string | null
   customerLabel: string | null
   routeLabel: string | null
+  categoryLabel: string | null
+  vStateLabel: string | null
+  tStateLabel: string | null
+  customsStatusLabel: string | null
+  billNo: string | null
+  sealNo: string | null
 }
 
 const CONTAINER_STATUS_META: Record<
@@ -92,6 +98,11 @@ export function filterContainerDirectoryItems(
       item.shippingLineLabel ?? "",
       item.customerLabel ?? "",
       item.routeLabel ?? "",
+      item.billNo ?? "",
+      item.sealNo ?? "",
+      item.categoryLabel ?? "",
+      item.tStateLabel ?? "",
+      item.vStateLabel ?? "",
     ]
       .join(" ")
       .toLowerCase()

@@ -1,10 +1,20 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../lib/generated/prisma"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["public", "auth"]
+}
+
+model User {
+  id      String   @id @db.Uuid
+  email   String?
+  @@map("users")
+  @@schema("auth")
+
 }
 
 // Enums
@@ -15,6 +25,7 @@ enum ProfileRole {
   customer
 
   @@map("profile_role")
+  @@schema("public")
 }
 
 enum PortType {
@@ -22,6 +33,7 @@ enum PortType {
   dryport
 
   @@map("port_type")
+  @@schema("public")
 }
 
 enum ContainerStatus {
@@ -34,6 +46,7 @@ enum ContainerStatus {
   hold
 
   @@map("container_status")
+  @@schema("public")
 }
 
 enum CustomsStatus {
@@ -42,6 +55,7 @@ enum CustomsStatus {
   hold
 
   @@map("customs_status")
+  @@schema("public")
 }
 
 enum ContainerSourceType {
@@ -49,6 +63,7 @@ enum ContainerSourceType {
   edi
 
   @@map("container_source_type")
+  @@schema("public")
 }
 
 enum ContainerEventType {
@@ -66,6 +81,7 @@ enum ContainerEventType {
   alert_created
 
   @@map("container_event_type")
+  @@schema("public")
 }
 
 enum ContainerEventSourceType {
@@ -75,6 +91,7 @@ enum ContainerEventSourceType {
   gps
 
   @@map("container_event_source_type")
+  @@schema("public")
 }
 
 enum EdiBatchStatus {
@@ -85,6 +102,7 @@ enum EdiBatchStatus {
   rejected
 
   @@map("edi_batch_status")
+  @@schema("public")
 }
 
 enum EdiValidationStatus {
@@ -93,6 +111,7 @@ enum EdiValidationStatus {
   invalid
 
   @@map("edi_validation_status")
+  @@schema("public")
 }
 
 enum EdiImportStatus {
@@ -101,12 +120,14 @@ enum EdiImportStatus {
   rejected
 
   @@map("edi_import_status")
+  @@schema("public")
 }
 
 enum VehicleType {
   barge
 
   @@map("vehicle_type")
+  @@schema("public")
 }
 
 enum VehicleStatus {
@@ -115,6 +136,7 @@ enum VehicleStatus {
   in_use
 
   @@map("vehicle_status")
+  @@schema("public")
 }
 
 enum VoyageStatus {
@@ -126,6 +148,7 @@ enum VoyageStatus {
   cancelled
 
   @@map("voyage_status")
+  @@schema("public")
 }
 
 enum VoyageLoadStatus {
@@ -134,6 +157,7 @@ enum VoyageLoadStatus {
   unloaded
 
   @@map("voyage_load_status")
+  @@schema("public")
 }
 
 enum TrackingGeofenceStatus {
@@ -143,6 +167,7 @@ enum TrackingGeofenceStatus {
   deviated
 
   @@map("tracking_geofence_status")
+  @@schema("public")
 }
 
 enum TrackingSourceType {
@@ -150,6 +175,7 @@ enum TrackingSourceType {
   manual
 
   @@map("tracking_source_type")
+  @@schema("public")
 }
 
 enum AlertType {
@@ -161,6 +187,7 @@ enum AlertType {
   weather
 
   @@map("alert_type")
+  @@schema("public")
 }
 
 enum AlertSeverity {
@@ -169,6 +196,7 @@ enum AlertSeverity {
   critical
 
   @@map("alert_severity")
+  @@schema("public")
 }
 
 enum AlertStatus {
@@ -177,6 +205,7 @@ enum AlertStatus {
   resolved
 
   @@map("alert_status")
+  @@schema("public")
 }
 
 // Models
@@ -197,6 +226,7 @@ model Customer {
   containers Container[]
 
   @@map("customers")
+  @@schema("public")
 }
 
 model ShippingLine {
@@ -211,6 +241,7 @@ model ShippingLine {
   containers Container[]
 
   @@map("shipping_lines")
+  @@schema("public")
 }
 
 model ContainerType {
@@ -227,6 +258,7 @@ model ContainerType {
   containers Container[]
 
   @@map("container_types")
+  @@schema("public")
 }
 
 model Port {
@@ -248,6 +280,7 @@ model Port {
   containersAsCurrent Container[] @relation("ContainerCurrentPort")
 
   @@map("ports")
+  @@schema("public")
 }
 
 model Yard {
@@ -266,6 +299,7 @@ model Yard {
 
   @@unique([portId, code], map: "uq_yards_port_code")
   @@map("yards")
+  @@schema("public")
 }
 
 model YardBlock {
@@ -284,6 +318,7 @@ model YardBlock {
 
   @@unique([yardId, code], map: "uq_yard_blocks_yard_code")
   @@map("yard_blocks")
+  @@schema("public")
 }
 
 model YardSlot {
@@ -305,6 +340,7 @@ model YardSlot {
 
   @@unique([blockId, code], map: "uq_yard_slots_block_code")
   @@map("yard_slots")
+  @@schema("public")
 }
 
 model Route {
@@ -326,6 +362,7 @@ model Route {
   containers      Container[]
 
   @@map("routes")
+  @@schema("public")
 }
 
 model RouteCheckpoint {
@@ -346,6 +383,7 @@ model RouteCheckpoint {
 
   @@unique([routeId, seqNo], map: "uq_route_checkpoints_route_seq")
   @@map("route_checkpoints")
+  @@schema("public")
 }
 
 model Profile {
@@ -370,6 +408,7 @@ model Profile {
   containerEvents ContainerEvent[] @relation("EventActorUser")
 
   @@map("profiles")
+  @@schema("public")
 }
 
 model Vehicle {
@@ -392,6 +431,7 @@ model Vehicle {
   alerts            Alert[]
 
   @@map("vehicles")
+  @@schema("public")
 }
 
 model Voyage {
@@ -422,6 +462,7 @@ model Voyage {
   events              ContainerEvent[]
 
   @@map("voyages")
+  @@schema("public")
 }
 
 model EdiBatch {
@@ -445,12 +486,13 @@ model EdiBatch {
   rows       EdiBatchRow[]
 
   @@map("edi_batches")
+  @@schema("public")
 }
 
 model Container {
   id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   containerNo     String              @unique @map("container_no")
-  containerTypeId String              @map("container_type_id") @db.Uuid
+  containerTypeId String?             @map("container_type_id") @db.Uuid
   shippingLineId  String?             @map("shipping_line_id") @db.Uuid
   customerId      String?             @map("customer_id") @db.Uuid
   routeId         String?             @map("route_id") @db.Uuid
@@ -464,7 +506,35 @@ model Container {
   eta             DateTime?           @db.Timestamptz
   grossWeightKg   Decimal?            @map("gross_weight_kg") @db.Decimal(14, 3)
   sealNo          String?             @map("seal_no")
+  sealNo2         String?             @map("seal_no2")
   billNo          String?             @map("bill_no")
+  
+  // Nhóm định danh container bổ sung
+  category        String?             @map("category") // Import/Export
+  vState          String?             @map("v_state")  // Active/Inactive
+  tState          String?             @map("t_state")  // Loaded/Empty
+  
+  // Nhóm vị trí & bãi bổ sung
+  stow            String?             @map("stow")     // Vị trí xếp tàu
+  grp             String?             @map("grp")      // Nhóm container
+  
+  // Nhóm trọng lượng & loại hàng bổ sung
+  frghtKind       String?             @map("frght_kind") // FCL/LCL/Empty
+  
+  // Nhóm hành trình bổ sung
+  obActualVisit   String?             @map("ob_actual_visit") // Tàu outbound
+  
+  // Nhóm container lạnh (reefer)
+  reqsPower       Boolean?            @map("reqs_power")
+  tempRequiredC   Decimal?            @map("temp_required_c") @db.Decimal(14, 3)
+  rlh             String?             @map("rlh")
+  rdh             String?             @map("rdh")
+  
+  // Nhóm đặc biệt (special cargo)
+  isOog           Boolean?            @map("is_oog")
+  imdg            String?             @map("imdg")
+  hazardous       Boolean?            @map("hazardous")
+
   sourceType      ContainerSourceType @default(manual) @map("source_type")
   ediBatchId      String?             @map("edi_batch_id") @db.Uuid
   lastEventAt     DateTime?           @map("last_event_at") @db.Timestamptz
@@ -472,7 +542,7 @@ model Container {
   createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  containerType ContainerType @relation(fields: [containerTypeId], references: [id])
+  containerType ContainerType? @relation(fields: [containerTypeId], references: [id])
   shippingLine  ShippingLine? @relation(fields: [shippingLineId], references: [id])
   customer      Customer?     @relation(fields: [customerId], references: [id])
   route         Route?        @relation(fields: [routeId], references: [id])
@@ -489,6 +559,7 @@ model Container {
   events           ContainerEvent[]
 
   @@map("containers")
+  @@schema("public")
 }
 
 model EdiBatchRow {
@@ -510,6 +581,7 @@ model EdiBatchRow {
 
   @@unique([batchId, rowNo], map: "uq_edi_batch_rows_batch_row_no")
   @@map("edi_batch_rows")
+  @@schema("public")
 }
 
 model VoyageContainer {
@@ -530,6 +602,7 @@ model VoyageContainer {
   @@unique([voyageId, containerId], map: "uq_voyage_containers_voyage_container")
   // uq_voyage_containers_active_container (partial index on container_id where load_status in ('planned', 'loaded')) 
   @@map("voyage_containers")
+  @@schema("public")
 }
 
 model VoyageCheckpoint {
@@ -546,6 +619,7 @@ model VoyageCheckpoint {
   checkpoint RouteCheckpoint? @relation(fields: [checkpointId], references: [id], onDelete: SetNull)
 
   @@map("voyage_checkpoints")
+  @@schema("public")
 }
 
 model TrackingPosition {
@@ -565,6 +639,7 @@ model TrackingPosition {
   voyage  Voyage? @relation(fields: [voyageId], references: [id], onDelete: SetNull)
 
   @@map("tracking_positions")
+  @@schema("public")
 }
 
 model Alert {
@@ -593,6 +668,7 @@ model Alert {
   resolveUser Profile?   @relation("AlertResolvedBy", fields: [resolvedBy], references: [id], onDelete: SetNull)
 
   @@map("alerts")
+  @@schema("public")
 }
 
 model ContainerEvent {
@@ -618,4 +694,5 @@ model ContainerEvent {
   actorUser Profile?  @relation("EventActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@map("container_events")
+  @@schema("public")
 }

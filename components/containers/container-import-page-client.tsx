@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useActionState, useMemo, useState } from "react"
+import { useActionState, useEffect, useMemo, useState } from "react"
 import { ArrowLeft, CircleAlert, LoaderCircle, Search } from "lucide-react"
 import { useFormStatus } from "react-dom"
 
@@ -25,6 +25,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import type { getContainerImportPreviewBatch } from "@/lib/containers/container-persistence"
 import { cn } from "@/lib/utils"
 
@@ -32,7 +41,23 @@ type ContainerImportPreviewBatch = NonNullable<
   Awaited<ReturnType<typeof getContainerImportPreviewBatch>>
 >
 
-type PreviewRow = ContainerImportPreviewBatch["rows"][number]
+type PreviewRow = ContainerImportPreviewBatch["rows"][number] & {
+  category: string | null
+  vState: string | null
+  tState: string | null
+  stow: string | null
+  grp: string | null
+  sealNo2: string | null
+  frghtKind: string | null
+  obActualVisit: string | null
+  reqsPower: boolean | null
+  tempRequiredC: string | null
+  rlh: string | null
+  rdh: string | null
+  isOog: boolean | null
+  imdg: string | null
+  hazardous: boolean | null
+}
 type RowFilter = "all" | "valid" | "invalid"
 
 function formatDateTime(value: string | null) {
@@ -122,38 +147,54 @@ function getStatusHintLabel(statusHint: string | null) {
   }
 }
 
-function ImportSubmitButton({
-  canImport,
-}: {
-  canImport: boolean
-}) {
-  const { pending } = useFormStatus()
-
-  return (
-    <Button type="submit" disabled={pending || !canImport}>
-      {pending ? (
-        <>
-          <LoaderCircle className="size-4 animate-spin" />
-          Đang nhập
-        </>
-      ) : (
-        "Nhập dữ liệu"
-      )}
-    </Button>
-  )
-}
 
 function ImportBatchActionForm({
   batchId,
   canImport,
+  rows,
+  successRows,
+  errorRows,
 }: {
   batchId: string
   canImport: boolean
+  rows: PreviewRow[]
+  successRows: number
+  errorRows: number
 }) {
   const [state, formAction] = useActionState(
     importContainerImportPreviewBatchAction,
     initialContainerImportSubmitActionState,
   )
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+
+  // Tổng hợp dữ liệu Master Data sẽ được tạo mới
+  const missingSummary = useMemo(() => {
+    const types = new Set<string>()
+    const ports = new Set<string>()
+    const lines = new Set<string>()
+    const customers = new Set<string>()
+
+    rows.forEach(row => {
+      row.warnings.forEach(warn => {
+        if (warn.includes("loại container")) types.add(row.containerTypeCode || "")
+        if (warn.includes("cảng mới")) ports.add(row.currentPortCode || "")
+        if (warn.includes("hãng tàu")) lines.add(row.shippingLineCode || "")
+        if (warn.includes("chủ hàng")) customers.add(row.customerCode || "")
+      })
+    })
+
+    return {
+      types: Array.from(types).sort(),
+      ports: Array.from(ports).sort(),
+      lines: Array.from(lines).sort(),
+      customers: Array.from(customers).sort(),
+      hasAny: types.size > 0 || ports.size > 0 || lines.size > 0 || customers.size > 0
+    }
+  }, [rows])
+
+  const handleOpenConfirm = () => {
+    setIsConfirmOpen(true)
+  }
 
   return (
     <div className="space-y-3">
@@ -165,11 +206,109 @@ function ImportBatchActionForm({
         </Alert>
       ) : null}
 
-      <form action={formAction} className="flex justify-end">
-        <input type="hidden" name="batchId" value={batchId} />
-        <ImportSubmitButton canImport={canImport} />
-      </form>
+      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <Button 
+          type="button" 
+          disabled={!canImport} 
+          onClick={handleOpenConfirm}
+        >
+          Nhập dữ liệu
+        </Button>
+        
+        <DialogContent className="max-w-2xl">
+          <form action={formAction}>
+            <input type="hidden" name="batchId" value={batchId} />
+            <DialogHeader>
+              <DialogTitle>Xác nhận nhập dữ liệu</DialogTitle>
+              <DialogDescription>
+                {errorRows > 0 ? (
+                  <span className="block mb-2 font-medium text-amber-600">
+                    Lưu ý: Bạn đang thực hiện nhập một phần. Hệ thống sẽ nhập {successRows} dòng hợp lệ và bỏ qua {errorRows} dòng bị lỗi.
+                  </span>
+                ) : null}
+                Hệ thống phát hiện các danh mục (Master Data) sau chưa có trong cơ sở dữ liệu và sẽ được tự động tạo mới. Hãy kiểm tra lại trước khi xác nhận.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="max-h-[60vh] overflow-y-auto py-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[150px]">Loại danh mục</TableHead>
+                    <TableHead>Các mã sẽ tạo mới (duy nhất)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {missingSummary.types.length > 0 && (
+                    <TableRow>
+                      <TableCell className="font-medium">Loại container</TableCell>
+                      <TableCell className="flex flex-wrap gap-1">
+                        {missingSummary.types.map(t => <Badge key={t} variant="outline">{t}</Badge>)}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {missingSummary.ports.length > 0 && (
+                    <TableRow>
+                      <TableCell className="font-medium">Cảng</TableCell>
+                      <TableCell className="flex flex-wrap gap-1">
+                        {missingSummary.ports.map(p => <Badge key={p} variant="outline">{p}</Badge>)}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {missingSummary.lines.length > 0 && (
+                    <TableRow>
+                      <TableCell className="font-medium">Hãng tàu</TableCell>
+                      <TableCell className="flex flex-wrap gap-1">
+                        {missingSummary.lines.map(l => <Badge key={l} variant="outline">{l}</Badge>)}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {missingSummary.customers.length > 0 && (
+                    <TableRow>
+                      <TableCell className="font-medium">Chủ hàng</TableCell>
+                      <TableCell className="flex flex-wrap gap-1">
+                        {missingSummary.customers.map(c => <Badge key={c} variant="outline">{c}</Badge>)}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {!missingSummary.hasAny && (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center py-8 text-muted-foreground italic">
+                        Tất cả danh mục đã tồn tại trong hệ thống.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <DialogActionButtons onCancel={() => setIsConfirmOpen(false)} />
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+function DialogActionButtons({ onCancel }: { onCancel: () => void }) {
+  const { pending } = useFormStatus()
+  
+  return (
+    <DialogFooter>
+      <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
+        Hủy
+      </Button>
+      <Button type="submit" disabled={pending}>
+        {pending ? (
+          <>
+            <LoaderCircle className="mr-2 size-4 animate-spin" />
+            Đang xử lý...
+          </>
+        ) : (
+          "Xác nhận & Nhập dữ liệu"
+        )}
+      </Button>
+    </DialogFooter>
   )
 }
 
@@ -208,6 +347,8 @@ function PreviewRowTable({
 }) {
   const [searchTerm, setSearchTerm] = useState("")
   const [rowFilter, setRowFilter] = useState<RowFilter>("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
 
   const filteredRows = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
@@ -246,6 +387,16 @@ function PreviewRowTable({
       return matchesFilter && matchesSearch
     })
   }, [rowFilter, rows, searchTerm])
+
+  const totalFilteredRows = filteredRows.length
+  const totalPages = Math.ceil(totalFilteredRows / pageSize)
+  const startIndex = (currentPage - 1) * pageSize
+  const paginatedRows = filteredRows.slice(startIndex, startIndex + pageSize)
+
+  // Reset page when filter or search changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, rowFilter, pageSize])
 
   return (
     <Card className="border-border/50">
@@ -292,66 +443,154 @@ function PreviewRowTable({
             </div>
           ) : (
             <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead>Dòng</TableHead>
-                  <TableHead>Container</TableHead>
-                  <TableHead>Thông tin</TableHead>
-                  <TableHead>Vị trí</TableHead>
-                  <TableHead>ETA</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead>Lỗi</TableHead>
+              <TableHeader className="bg-muted/50">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-10 text-center font-bold">#</TableHead>
+                  <TableHead className="w-[180px] font-bold">Container & Loại</TableHead>
+                  <TableHead className="w-[120px] font-bold">Định danh</TableHead>
+                  <TableHead className="w-[120px] font-bold">Hãng tàu & Seal</TableHead>
+                  <TableHead className="w-[120px] font-bold">Trọng lượng/Hàng</TableHead>
+                  <TableHead className="w-[180px] font-bold">Hành trình & POD</TableHead>
+                  <TableHead className="w-[150px] font-bold">Vị trí (Position)</TableHead>
+                  <TableHead className="w-[120px] font-bold">Lạnh (Reefer)</TableHead>
+                  <TableHead className="w-[120px] font-bold">Đặc biệt</TableHead>
+                  <TableHead className="w-24 font-bold">Trạng thái</TableHead>
+                  <TableHead className="font-bold">Nhận xét/Lỗi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRows.map((row) => (
+                {paginatedRows.map((row) => (
                   <TableRow
                     key={`${row.rowNo}-${row.containerNo ?? "unknown"}`}
                     className={cn(!row.isValid && "bg-destructive/5")}
                   >
-                    <TableCell className="align-top whitespace-normal font-medium">
+                    <TableCell className="align-top whitespace-normal font-medium text-center">
                       {row.rowNo}
                     </TableCell>
-                    <TableCell className="align-top whitespace-normal">
+                    <TableCell className="align-top">
+                      <div className="flex flex-col gap-0.5">
+                        <div className="font-mono font-bold text-foreground">
+                          {row.containerNo || "—"}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground uppercase">
+                          {row.containerTypeCode || "—"}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top text-xs">
                       <div className="space-y-1">
-                        <p className="font-mono font-medium">{formatText(row.containerNo)}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Bill: {formatText(row.billNo)} | Seal: {formatText(row.sealNo)}
-                        </p>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-semibold text-muted-foreground w-12 shrink-0">Cat:</span>
+                          <span className="font-medium">{row.category || "—"}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-semibold text-muted-foreground w-12 shrink-0">V-St:</span>
+                          <span className={row.vState === "Active" ? "text-green-600 font-medium" : ""}>{row.vState || "—"}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-semibold text-muted-foreground w-12 shrink-0">T-St:</span>
+                          <span className="font-medium italic">{row.tState || "—"}</span>
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell className="align-top whitespace-normal">
-                      <div className="space-y-1 text-sm">
-                        <p>Loại: {formatText(row.containerTypeCode)}</p>
-                        <p>Khách: {formatText(row.customerCode)}</p>
-                        <p>Tuyến: {formatText(row.routeCode)}</p>
-                        <p>Hãng tàu: {formatText(row.shippingLineCode)}</p>
-                        {row.note ? <p className="text-xs text-muted-foreground">Ghi chú: {row.note}</p> : null}
+                    <TableCell className="align-top text-xs">
+                      <div className="space-y-1">
+                        <div className="font-medium text-blue-600">{row.shippingLineCode || "—"}</div>
+                        <div className="text-[10px] text-muted-foreground truncate" title={row.sealNo || undefined}>
+                          S1: {row.sealNo || "—"}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground truncate" title={row.sealNo2 || undefined}>
+                          S2: {row.sealNo2 || "—"}
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell className="align-top whitespace-normal">
-                      <div className="space-y-2 text-sm">
-                        <p>{formatLocation(row)}</p>
-                        <p className="text-xs text-muted-foreground">
-                          POD: {formatText(row.currentPortCode)}
-                        </p>
-                        {row.statusHint ? (
-                          <Badge variant="outline" className="w-fit">
-                            {getStatusHintLabel(row.statusHint)}
+                    <TableCell className="align-top text-xs">
+                      <div className="space-y-1">
+                        <div className="font-medium">{row.grossWeightKg ? `${row.grossWeightKg}kg` : "—"}</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {row.frghtKind || "—"}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top text-xs">
+                      <div className="space-y-1">
+                        <div className="font-medium truncate max-w-[150px]" title={row.billNo || undefined}>
+                          IB: {row.billNo || "—"}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground truncate">
+                          OB: {row.obActualVisit || "—"}
+                        </div>
+                        <div className="text-[10px] font-mono text-muted-foreground font-bold">
+                          POD: {row.currentPortCode || "—"}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top text-xs">
+                      <div className="space-y-1">
+                        <div className="font-mono font-bold text-amber-700 bg-amber-50 px-1 py-0.5 rounded border border-amber-100 inline-block">
+                          {row.currentSlotCode || "—"}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-1">
+                          <span>Stow: {row.stow || "—"}</span>
+                          <span>Grp: {row.grp || "—"}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top text-xs">
+                      {row.reqsPower ? (
+                        <div className="space-y-1">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[9px] px-1 h-4">
+                            Reefer (Y)
                           </Badge>
-                        ) : null}
+                          <div className="text-[10px] font-medium text-blue-800">
+                            Temp: {row.tempRequiredC ? `${row.tempRequiredC}°C` : "—"}
+                          </div>
+                          <div className="text-[9px] text-muted-foreground">
+                            H: {row.rlh}/{row.rdh}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground italic text-[10px]">No</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="align-top text-xs">
+                      <div className="space-y-1">
+                        {row.hazardous && (
+                          <Badge variant="destructive" className="text-[9px] px-1 h-4">
+                            Hazardous
+                          </Badge>
+                        )}
+                        {row.isOog && (
+                          <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-orange-200 text-[9px] px-1 h-4">
+                            OOG
+                          </Badge>
+                        )}
+                        <div className="text-[10px] font-medium mt-1">
+                          {row.imdg ? `IMDG: ${row.imdg}` : ""}
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell className="align-top whitespace-normal text-sm text-muted-foreground">
-                      {formatDateTime(row.eta)}
-                    </TableCell>
-                    <TableCell className="align-top whitespace-normal">
-                      <Badge variant={row.isValid ? "secondary" : "destructive"}>
-                        {row.isValid ? "Hợp lệ" : "Có lỗi"}
+                    <TableCell className="align-top space-y-1">
+                      <Badge variant={row.isValid ? (row.warnings.length > 0 ? "outline" : "secondary") : "destructive"} className={cn("px-1.5 py-0 text-[10px] h-5", row.isValid && row.warnings.length > 0 && "border-amber-200 bg-amber-50 text-amber-700")}>
+                        {row.isValid ? (row.warnings.length > 0 ? "Cần tạo mới" : "Hợp lệ") : "Có lỗi"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="max-w-md align-top whitespace-normal text-sm text-muted-foreground">
-                      {row.errors.length ? row.errors.join(" | ") : "—"}
+                    <TableCell className="max-w-md align-top whitespace-normal text-xs font-medium">
+                      {row.errors.length > 0 && (
+                        <div className="text-destructive/90 mb-1">
+                          {row.errors.join(" | ")}
+                        </div>
+                      )}
+                      {row.warnings.length > 0 && (
+                        <div className="text-amber-600 mb-1">
+                          {row.warnings.join(" | ")}
+                        </div>
+                      )}
+                      {row.errors.length === 0 && row.warnings.length === 0 && (
+                        <div className="text-muted-foreground">
+                          {row.note || "—"}
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -359,22 +598,72 @@ function PreviewRowTable({
             </Table>
           )}
         </div>
+
+        {totalPages > 1 && (
+          <div className="mt-4 flex items-center justify-between border-t pt-4">
+            <div className="text-sm text-muted-foreground">
+              Hiển thị {startIndex + 1} - {Math.min(startIndex + pageSize, totalFilteredRows)} trên {totalFilteredRows} dòng
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Trước
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => {
+                    if (totalPages <= 7) return true
+                    if (p === 1 || p === totalPages) return true
+                    return Math.abs(p - currentPage) <= 1
+                  })
+                  .map((p, i, arr) => (
+                    <div key={p} className="flex items-center gap-1">
+                      {i > 0 && p - arr[i - 1] > 1 && <span className="px-1 text-muted-foreground">...</span>}
+                      <Button
+                        variant={currentPage === p ? "default" : "outline"}
+                        size="sm"
+                        className="size-8 p-0"
+                        onClick={() => setCurrentPage(p)}
+                      >
+                        {p}
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Sau
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
 }
 
 export function ContainerImportPageClient({
-  preview,
+  batch,
+  rowsJson,
 }: {
-  preview: ContainerImportPreviewBatch
+  batch: ContainerImportPreviewBatch["batch"]
+  rowsJson: string
 }) {
-  const sourceModeLabel = getSourceModeLabel(preview.batch.sourceMode)
-  const batchStatusMeta = getBatchStatusMeta(preview.batch.status)
+  const rows = useMemo(() => JSON.parse(rowsJson) as PreviewRow[], [rowsJson])
+  const sourceModeLabel = getSourceModeLabel(batch.sourceMode)
+  const batchStatusMeta = getBatchStatusMeta(batch.status)
   const canImport =
-    preview.batch.status === "validated" &&
-    preview.batch.totalRows > 0 &&
-    preview.batch.errorRows === 0
+    batch.status === "validated" &&
+    batch.totalRows > 0 &&
+    batch.successRows > 0
 
   return (
     <DashboardLayout
@@ -394,11 +683,11 @@ export function ContainerImportPageClient({
 
             <div className="space-y-1">
               <h1 className="text-2xl font-semibold tracking-tight">
-                Xem trước {preview.batch.batchNo}
+                Xem trước {batch.batchNo}
               </h1>
               <p className="max-w-3xl text-sm text-muted-foreground">
-                {preview.batch.fileName} · {preview.batch.totalRows} dòng · {preview.batch.successRows} hợp lệ ·{" "}
-                {preview.batch.errorRows} lỗi
+                {batch.fileName} · {batch.totalRows} dòng · {batch.successRows} hợp lệ ·{" "}
+                {batch.errorRows} lỗi
               </p>
             </div>
           </div>
@@ -411,58 +700,45 @@ export function ContainerImportPageClient({
               </Link>
             </Button>
 
-            <ImportBatchActionForm batchId={preview.batch.id} canImport={canImport} />
+            <ImportBatchActionForm 
+              batchId={batch.id} 
+              canImport={canImport} 
+              rows={rows} 
+              successRows={batch.successRows}
+              errorRows={batch.errorRows}
+            />
           </div>
         </div>
 
-        {preview.batch.note ? (
+        {batch.note ? (
           <Alert className="border-border/60 bg-muted/30">
             <CircleAlert className="size-4" />
             <AlertTitle>Thông tin nguồn</AlertTitle>
-            <AlertDescription>{preview.batch.note}</AlertDescription>
+            <AlertDescription>{batch.note}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {batch.successRows === 0 ? (
+          <Alert variant="destructive" className="border-destructive/50 bg-destructive/10 mt-4">
+            <CircleAlert className="size-5" />
+            <AlertTitle className="text-base font-semibold">Không thể nhập dữ liệu</AlertTitle>
+            <AlertDescription className="text-sm mt-1">
+              Toàn bộ {batch.totalRows} bản ghi trong file này đều đã tồn tại trong hệ thống hoặc chứa lỗi không thể khắc phục. Không có bản ghi mới nào hợp lệ để nhập. Vui lòng kiểm tra mục "Nhận xét/Lỗi" trong bảng dưới đây để biết thêm chi tiết.
+            </AlertDescription>
           </Alert>
         ) : null}
 
         <div className="grid gap-4 md:grid-cols-3">
-          <PreviewStatCard title="Tổng dòng" value={preview.batch.totalRows} />
-          <PreviewStatCard title="Hợp lệ" value={preview.batch.successRows} tone="success" />
-          <PreviewStatCard title="Có lỗi" value={preview.batch.errorRows} tone="destructive" />
-        </div>
-
-        <div>
-          {preview.batch.errorRows > 0 ? (
-            <Alert variant="destructive" className="mb-4 border-destructive/30 bg-destructive/10">
-              <CircleAlert className="size-4" />
-              <AlertTitle>Cần xử lý trước khi nhập</AlertTitle>
-              <AlertDescription>
-                Batch này còn {preview.batch.errorRows} dòng lỗi. Hệ thống sẽ không cho nhập cho đến khi
-                batch sạch lỗi.
-              </AlertDescription>
-            </Alert>
-          ) : preview.batch.status === "imported" ? (
-            <Alert className="mb-4 border-success/20 bg-success/10">
-              <CircleAlert className="size-4" />
-              <AlertTitle>Batch đã được nhập</AlertTitle>
-              <AlertDescription>
-                Batch này đã được nhập trước đó. Bảng bên dưới chỉ để xem lại dữ liệu.
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <Alert className="mb-4 border-primary/20 bg-primary/5">
-              <CircleAlert className="size-4" />
-              <AlertTitle>Sẵn sàng nhập</AlertTitle>
-              <AlertDescription>
-                Bạn có thể rà soát dữ liệu ở bảng bên dưới rồi bấm Nhập dữ liệu để ghi vào hệ thống.
-              </AlertDescription>
-            </Alert>
-          )}
+          <PreviewStatCard title="Tổng dòng" value={batch.totalRows} />
+          <PreviewStatCard title="Hợp lệ" value={batch.successRows} tone="success" />
+          <PreviewStatCard title="Có lỗi" value={batch.errorRows} tone="destructive" />
         </div>
 
         <PreviewRowTable
-          rows={preview.rows}
-          totalRows={preview.batch.totalRows}
-          validRows={preview.batch.successRows}
-          invalidRows={preview.batch.errorRows}
+          rows={rows}
+          totalRows={batch.totalRows}
+          validRows={batch.successRows}
+          invalidRows={batch.errorRows}
         />
       </div>
     </DashboardLayout>

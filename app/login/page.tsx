@@ -20,7 +20,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <AuthShell
       eyebrow="Đăng nhập hệ thống"
-      title="Hệ thống vận hành và theo dõi container."
+      title="Hệ thống vận hành và theo dõi container"
       description="Dùng email đã được cấp quyền để vào đúng không gian làm việc."
       compact
       showHighlights

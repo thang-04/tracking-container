@@ -30,3 +30,8 @@ playwright-report/
 .nyc_output/
 *.tsbuildinfo
 *.xlsx
+
+# Scratch / temp files
+tmp/
+*.bak
+prisma_error.txt

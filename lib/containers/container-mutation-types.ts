@@ -1,4 +1,4 @@
-﻿export const CONTAINER_IMPORT_REQUIRED_HEADERS = [
+export const CONTAINER_IMPORT_REQUIRED_HEADERS = [
   "container_no",
   "container_type_code",
 ] as const
@@ -17,6 +17,22 @@ export const CONTAINER_IMPORT_OPTIONAL_HEADERS = [
   "current_slot_code",
   "status_hint",
   "note",
+  // Các trường mới từ 7 nhóm dữ liệu
+  "category",
+  "v_state",
+  "t_state",
+  "stow",
+  "grp",
+  "seal_no2",
+  "frght_kind",
+  "ob_actual_visit",
+  "reqs_power",
+  "temp_required_c",
+  "rlh",
+  "rdh",
+  "is_oog",
+  "imdg",
+  "hazardous",
 ] as const
 
 export const CONTAINER_IMPORT_HEADERS = [
@@ -56,6 +72,22 @@ export type CanonicalContainerImportRow = {
   currentSlotCode: string | null
   statusHint: ContainerStatusHint | null
   note: string | null
+  // Các trường mới (dạng chuỗi từ Excel)
+  category: string | null
+  vState: string | null
+  tState: string | null
+  stow: string | null
+  grp: string | null
+  sealNo2: string | null
+  frghtKind: string | null
+  obActualVisit: string | null
+  reqsPower: string | null
+  tempRequiredC: string | null
+  rlh: string | null
+  rdh: string | null
+  isOog: string | null
+  imdg: string | null
+  hazardous: string | null
 }
 
 export type ParsedContainerImportRow = {
@@ -120,7 +152,7 @@ export type ContainerImportValidationContext = {
 
 export type ResolvedContainerMutationInput = {
   containerNo: string
-  containerTypeId: string
+  containerTypeId: string | null
   customerId: string | null
   routeId: string | null
   shippingLineId: string | null
@@ -135,10 +167,27 @@ export type ResolvedContainerMutationInput = {
   billNo: string | null
   sealNo: string | null
   note: string | null
+  // Các trường mới (dùng cho Prisma mutation)
+  category: string | null
+  vState: string | null
+  tState: string | null
+  stow: string | null
+  grp: string | null
+  sealNo2: string | null
+  frghtKind: string | null
+  obActualVisit: string | null
+  reqsPower: boolean | null
+  tempRequiredC: string | null
+  rlh: string | null
+  rdh: string | null
+  isOog: boolean | null
+  imdg: string | null
+  hazardous: boolean | null
 }
 
 export type ValidatedContainerImportRow = ParsedContainerImportRow & {
   errors: string[]
+  warnings: string[]
   isValid: boolean
   resolved: ResolvedContainerMutationInput | null
 }

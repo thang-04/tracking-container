@@ -1,8 +1,8 @@
-import { Plus, Ship } from "lucide-react"
+import { Ship } from "lucide-react"
 
+import { CreateVehicleDialog } from "@/components/transport/create-vehicle-dialog"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Empty,
@@ -63,12 +63,9 @@ export default async function TransportPage() {
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <p className="text-sm text-muted-foreground">
-            Tạo phương tiện, tạo chuyến và phân công tự động sẽ được bật khi server actions cho vận tải hoàn tất.
+            Quản lý phương tiện, chuyến đi và phân công container.
           </p>
-          <Button disabled>
-            <Plus className="mr-2 size-4" />
-            Tạo sà lan
-          </Button>
+          <CreateVehicleDialog />
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
