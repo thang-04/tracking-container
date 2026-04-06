@@ -62,24 +62,31 @@ export function AuthShell({
               </div>
             </div>
 
-            <div className={cn("space-y-6", compact ? "max-w-xl" : "max-w-2xl")}>
+            <div
+              className={cn(
+                "mx-auto w-full space-y-6 text-center px-6",
+                compact ? "max-w-3xl" : "max-w-7xl"
+              )}
+            >
               {!compact && (
                 <p className="text-xs font-semibold uppercase tracking-[0.42em] text-sky-200/60">
                   {eyebrow}
                 </p>
               )}
+
               <h1
                 className={cn(
-                  "font-semibold leading-[1.05] text-white",
-                  compact ? "max-w-lg text-3xl xl:text-4xl" : "max-w-xl text-3xl xl:text-4xl"
+                  "mx-auto font-semibold leading-[1.05] text-white",
+                  compact ? "max-w-3xl text-2xl xl:text-3xl" : "max-w-5xl text-4xl xl:text-6xl"
                 )}
               >
                 {title}
               </h1>
+
               <p
                 className={cn(
-                  "text-slate-300",
-                  compact ? "max-w-md text-base leading-7" : "max-w-xl text-lg leading-8"
+                  "mx-auto text-slate-300",
+                  compact ? "max-w-2xl text-base leading-7" : "max-w-4xl text-lg leading-8"
                 )}
               >
                 {description.trim() ? description : null}
@@ -88,14 +95,14 @@ export function AuthShell({
 
             {compact && showHighlights && (
               <div className="w-full">
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-3">
                   {statusCards.map(({ title, description, icon: Icon }) => (
                     <div
                       key={title}
                       className="rounded-[1.4rem] border border-white/10 bg-slate-950/45 p-4"
                     >
                       <Icon className="h-4 w-4 text-sky-200" />
-                      <h2 className="mt-5 text-[0.98rem] font-semibold text-white">{title}</h2>
+                      <h2 className="mt-4 text-[0.98rem] font-semibold text-white">{title}</h2>
                       <p className="mt-2 text-xs leading-5 text-slate-300">{description}</p>
                     </div>
                   ))}
