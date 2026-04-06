@@ -9,13 +9,13 @@ const portalHighlights = [
   {
     title: "Container được ủy quyền",
     value: "24",
-    description: "Danh sách container khách hàng có quyền theo dõi trong portal.",
+    description: "Danh sách container khách hàng có quyền theo dõi trong cổng khách hàng.",
     icon: Boxes,
   },
   {
-    title: "ETA cần chú ý",
+    title: "Dự kiến đến cần chú ý",
     value: "03",
-    description: "Lô hàng có ETA thay đổi trong 24 giờ gần nhất.",
+    description: "Lô hàng có thời gian đến dự kiến thay đổi trong 24 giờ gần nhất.",
     icon: Clock3,
   },
   {
@@ -37,15 +37,15 @@ export default async function PortalPage() {
         <header className="flex flex-col gap-5 rounded-[2rem] border border-border/60 bg-card p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary/70">
-              Customer Portal
+              Cổng khách hàng
             </p>
             <div>
               <h1 className="text-3xl font-semibold tracking-tight text-foreground">
                 Xin chào, {auth.profile.fullName}
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                Đây là shell portal nền tảng cho khách hàng. Các màn tra cứu container,
-                ETA và lịch sử cơ bản sẽ được mở rộng từ không gian này.
+                Đây là khu vực nền tảng dành cho khách hàng. Các màn tra cứu container,
+                Thời gian đến dự kiến và lịch sử cơ bản sẽ được mở rộng từ không gian này.
               </p>
             </div>
           </div>
@@ -84,16 +84,16 @@ export default async function PortalPage() {
 
         <Card className="border-border/60">
           <CardHeader>
-            <CardTitle>Khu vực portal đang được dựng nền tảng</CardTitle>
+            <CardTitle>Khu vực cổng khách hàng đang được dựng nền tảng</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm leading-6 text-muted-foreground">
             <p>
-              Ở bước này, portal đã có guard customer-only và đích điều hướng hợp lệ
+              Ở bước này, hệ thống đã có bộ chặn chỉ dành cho khách hàng và đích điều hướng hợp lệ
               sau đăng nhập.
             </p>
             <p>
-              Các màn tiếp theo nên ưu tiên tra cứu container được ủy quyền, ETA,
-              và timeline cơ bản thay vì sao chép shell nội bộ.
+              Các màn tiếp theo nên ưu tiên tra cứu container được ủy quyền, thời gian đến dự kiến,
+              và dòng thời gian cơ bản thay vì sao chép giao diện nội bộ.
             </p>
           </CardContent>
         </Card>

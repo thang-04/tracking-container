@@ -168,7 +168,7 @@ export function UsersPageClient({ users }: { users: UserDirectoryItem[] }) {
                   </EmptyMedia>
                   <EmptyTitle>Chưa có người dùng trong bảng `profiles`</EmptyTitle>
                   <EmptyDescription>
-                    Khi Supabase đã có tài khoản và record `profiles`, danh sách người dùng sẽ hiển thị tại đây.
+                    Khi Supabase đã có tài khoản và bản ghi `profiles`, danh sách người dùng sẽ hiển thị tại đây.
                   </EmptyDescription>
                 </EmptyHeader>
               </Empty>

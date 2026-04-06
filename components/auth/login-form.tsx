@@ -6,11 +6,11 @@ import { useFormStatus } from "react-dom"
 import { ArrowRight, CircleAlert, KeyRound, LoaderCircle, Mail } from "lucide-react"
 
 import { loginAction } from "@/app/actions/auth"
-import { initialAuthActionState } from "@/lib/auth/action-state"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { initialAuthActionState } from "@/lib/auth/action-state"
 
 function SubmitButton() {
   const { pending } = useFormStatus()

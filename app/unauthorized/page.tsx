@@ -59,9 +59,9 @@ export default async function UnauthorizedPage({
 
   return (
     <AuthShell
-      eyebrow="Access Control"
+      eyebrow="Kiểm soát truy cập"
       title="Xác thực thành công không đồng nghĩa với được phép vào mọi khu vực."
-      description="Quyền truy cập được xác định theo hồ sơ nghiệp vụ và ranh giới giữa vận hành nội bộ với customer portal."
+      description="Quyền truy cập được xác định theo hồ sơ nghiệp vụ và ranh giới giữa vận hành nội bộ với cổng khách hàng."
     >
       <AuthCard
         eyebrow="Không có quyền"

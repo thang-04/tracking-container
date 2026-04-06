@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma"
+import { getOptionalPrismaClient } from "@/lib/prisma"
 import type {
   ContainerImportValidationContext,
   ContainerWorkflowStatus,
@@ -105,6 +105,24 @@ export type ContainerFormOptions = {
 }
 
 export async function getContainerWorkflowReferenceData(): Promise<ContainerWorkflowReferenceData> {
+  const prisma = getOptionalPrismaClient()
+
+  if (!prisma) {
+    return {
+      containerTypes: [],
+      customers: [],
+      shippingLines: [],
+      routes: [],
+      ports: [],
+      yards: [],
+      blocks: [],
+      slots: [],
+      existingContainerNos: [],
+      occupiedSlotIds: [],
+      occupiedSlotCodes: [],
+    }
+  }
+
   const [
     containerTypes,
     customers,
@@ -414,19 +432,20 @@ export async function getContainerFormOptions(): Promise<ContainerFormOptions> {
 export function getStatusLabel(status: ContainerWorkflowStatus) {
   switch (status) {
     case "at_seaport_yard":
-      return "Tai bai cang bien"
+      return "Tại bãi cảng biển"
     case "at_dryport_yard":
-      return "Tai bai cang can"
+      return "Tại bãi cảng cạn"
     case "on_barge":
-      return "Da xep len sa lan"
+      return "Đã xếp lên sà lan"
     case "in_transit":
-      return "Dang hanh trinh"
+      return "Đang hành trình"
     case "released":
-      return "Da giai phong"
+      return "Đã giải phóng"
     case "hold":
-      return "Dang giu"
+      return "Đang giữ"
     case "new":
     default:
-      return "Moi tao"
+      return "Mới tạo"
   }
 }
+

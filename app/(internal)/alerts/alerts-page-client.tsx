@@ -195,7 +195,7 @@ export function AlertsPageClient({ alerts }: { alerts: AlertDirectoryItem[] }) {
                   </EmptyMedia>
                   <EmptyTitle>Chưa có cảnh báo trong hệ thống</EmptyTitle>
                   <EmptyDescription>
-                    Khi bảng `alerts` có record thật từ delay, hold, route deviation hoặc các nguồn khác, chúng sẽ hiển thị ở đây.
+                    Khi bảng `alerts` có bản ghi thật từ chậm trễ, tạm giữ, lệch tuyến hoặc các nguồn khác, chúng sẽ hiển thị ở đây.
                   </EmptyDescription>
                 </EmptyHeader>
               </Empty>

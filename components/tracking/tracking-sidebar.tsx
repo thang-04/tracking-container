@@ -159,7 +159,7 @@ export function TrackingSidebar({
                     )}
                     {typeof vehicle.manifestCount === "number" && (
                       <div className="mt-1 text-xs text-muted-foreground">
-                        {vehicle.manifestCount} container trên manifest
+                        {vehicle.manifestCount} container trong chuyến
                       </div>
                     )}
                   </button>

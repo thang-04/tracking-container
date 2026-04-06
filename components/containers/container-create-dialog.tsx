@@ -42,12 +42,12 @@ function SubmitButton() {
       {pending ? (
         <>
           <LoaderCircle className="size-4 animate-spin" />
-          Dang luu
+          Đang lưu
         </>
       ) : (
         <>
           <Plus className="size-4" />
-          Tao container
+          Tạo container
         </>
       )}
     </Button>
@@ -142,23 +142,23 @@ function CreateContainerDialogForm({
 
       <div className="space-y-4 rounded-xl border border-border/60 p-4">
         <div>
-          <h3 className="font-medium text-foreground">Thong tin chinh</h3>
+          <h3 className="font-medium text-foreground">Thông tin chính</h3>
           <p className="text-sm text-muted-foreground">
-            Tao moi container bang master data hien co trong Supabase.
+            Tạo mới container bằng master data hiện có trong Supabase.
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="containerNo">Ma container</Label>
+            <Label htmlFor="containerNo">Mã container</Label>
             <Input id="containerNo" name="containerNo" placeholder="MSKU1234567" />
             <FieldError state={state} name="containerNo" />
           </div>
           <div className="space-y-2">
-            <Label>Loai container</Label>
+            <Label>Loại container</Label>
             <Select value={containerTypeCode} onValueChange={setContainerTypeCode}>
               <SelectTrigger>
-                <SelectValue placeholder="Chon loai container" />
+                <SelectValue placeholder="Chọn loại container" />
               </SelectTrigger>
               <SelectContent>
                 {formOptions.containerTypes.map((option) => (
@@ -171,10 +171,10 @@ function CreateContainerDialogForm({
             <FieldError state={state} name="containerTypeCode" />
           </div>
           <div className="space-y-2">
-            <Label>Khach hang</Label>
+            <Label>Khách hàng</Label>
             <Select value={customerCode} onValueChange={setCustomerCode}>
               <SelectTrigger>
-                <SelectValue placeholder="Chon khach hang" />
+                <SelectValue placeholder="Chọn khách hàng" />
               </SelectTrigger>
               <SelectContent>
                 {formOptions.customers.map((option) => (
@@ -187,10 +187,10 @@ function CreateContainerDialogForm({
             <FieldError state={state} name="customerCode" />
           </div>
           <div className="space-y-2">
-            <Label>Tuyen</Label>
+            <Label>Tuyến</Label>
             <Select value={routeCode} onValueChange={setRouteCode}>
               <SelectTrigger>
-                <SelectValue placeholder="Chon tuyen" />
+                <SelectValue placeholder="Chọn tuyến" />
               </SelectTrigger>
               <SelectContent>
                 {formOptions.routes.map((option) => (
@@ -203,7 +203,7 @@ function CreateContainerDialogForm({
             <FieldError state={state} name="routeCode" />
           </div>
           <div className="space-y-2">
-            <Label>Hang tau</Label>
+            <Label>Hãng tàu</Label>
             <Select
               value={shippingLineCode || NONE_VALUE}
               onValueChange={(value) =>
@@ -211,10 +211,10 @@ function CreateContainerDialogForm({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Khong gan hang tau" />
+                <SelectValue placeholder="Không gắn hãng tàu" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE_VALUE}>Khong gan hang tau</SelectItem>
+                <SelectItem value={NONE_VALUE}>Không gắn hãng tàu</SelectItem>
                 {formOptions.shippingLines.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -224,21 +224,21 @@ function CreateContainerDialogForm({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="grossWeightKg">Trong luong (kg)</Label>
+            <Label htmlFor="grossWeightKg">Trọng lượng (kg)</Label>
             <Input id="grossWeightKg" name="grossWeightKg" type="number" min="0" step="0.001" />
             <FieldError state={state} name="grossWeightKg" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="eta">ETA</Label>
+            <Label htmlFor="eta">Dự kiến đến</Label>
             <Input id="eta" name="eta" type="datetime-local" />
             <FieldError state={state} name="eta" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="billNo">Bill No</Label>
+            <Label htmlFor="billNo">Số vận đơn</Label>
             <Input id="billNo" name="billNo" placeholder="BL-001" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="sealNo">Seal No</Label>
+            <Label htmlFor="sealNo">Số niêm phong</Label>
             <Input id="sealNo" name="sealNo" placeholder="SEAL-001" />
           </div>
         </div>
@@ -246,9 +246,9 @@ function CreateContainerDialogForm({
 
       <div className="space-y-4 rounded-xl border border-border/60 p-4">
         <div>
-          <h3 className="font-medium text-foreground">Vi tri ban dau</h3>
+          <h3 className="font-medium text-foreground">Vị trí ban đầu</h3>
           <p className="text-sm text-muted-foreground">
-            Neu container da vao bai, he thong se tu dat trang thai theo loai port cua yard.
+            Nếu container đã vào bãi, hệ thống sẽ tự đặt trạng thái theo loại port của yard.
           </p>
         </div>
 
@@ -269,18 +269,18 @@ function CreateContainerDialogForm({
           <label className="flex items-start gap-3 rounded-xl border border-border/60 p-3">
             <RadioGroupItem value="none" className="mt-1" />
             <div className="space-y-1">
-              <p className="text-sm font-medium">Chua vao bai</p>
+              <p className="text-sm font-medium">Chưa vào bãi</p>
               <p className="text-sm text-muted-foreground">
-                Chi luu cang hien tai neu can. Trang thai se la `new`.
+                Chỉ lưu cảng hiện tại nếu cần. Trạng thái sẽ là `new`.
               </p>
             </div>
           </label>
           <label className="flex items-start gap-3 rounded-xl border border-border/60 p-3">
             <RadioGroupItem value="yard" className="mt-1" />
             <div className="space-y-1">
-              <p className="text-sm font-medium">Da co vi tri bai</p>
+              <p className="text-sm font-medium">Đã có vị trí bãi</p>
               <p className="text-sm text-muted-foreground">
-                Bat buoc chon day du yard, block va slot.
+                Bắt buộc chọn đầy đủ yard, block và slot.
               </p>
             </div>
           </label>
@@ -288,16 +288,16 @@ function CreateContainerDialogForm({
 
         {locationMode === "none" ? (
           <div className="space-y-2">
-            <Label>Cang hien tai</Label>
+            <Label>Cảng hiện tại</Label>
             <Select
               value={currentPortCode || NONE_VALUE}
               onValueChange={(value) => setCurrentPortCode(value === NONE_VALUE ? "" : value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Khong gan cang hien tai" />
+                <SelectValue placeholder="Không gắn cảng hiện tại" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE_VALUE}>Khong gan cang hien tai</SelectItem>
+                <SelectItem value={NONE_VALUE}>Không gắn cảng hiện tại</SelectItem>
                 {formOptions.ports.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -320,7 +320,7 @@ function CreateContainerDialogForm({
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Chon yard" />
+                  <SelectValue placeholder="Chọn yard" />
                 </SelectTrigger>
                 <SelectContent>
                   {formOptions.yards.map((option) => (
@@ -333,8 +333,8 @@ function CreateContainerDialogForm({
               <FieldError state={state} name="currentYardCode" />
             </div>
             <div className="space-y-2">
-              <Label>Cang tuong ung</Label>
-              <Input value={derivedPortCode || "Se tu dong suy ra tu yard"} disabled />
+              <Label>Cảng tương ứng</Label>
+              <Input value={derivedPortCode || "Sẽ tự động suy ra từ yard"} disabled />
             </div>
             <div className="space-y-2">
               <Label>Block</Label>
@@ -347,7 +347,7 @@ function CreateContainerDialogForm({
                 disabled={!currentYardCode}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Chon block" />
+                  <SelectValue placeholder="Chọn block" />
                 </SelectTrigger>
                 <SelectContent>
                   {blockOptions.map((option) => (
@@ -367,7 +367,7 @@ function CreateContainerDialogForm({
                 disabled={!currentBlockCode}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Chon slot con trong" />
+                  <SelectValue placeholder="Chọn slot còn trống" />
                 </SelectTrigger>
                 <SelectContent>
                   {slotOptions.map((option) => (
@@ -384,14 +384,14 @@ function CreateContainerDialogForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="note">Ghi chu</Label>
-        <Textarea id="note" name="note" placeholder="Ghi chu nghiep vu neu can" rows={4} />
+        <Label htmlFor="note">Ghi chú</Label>
+        <Textarea id="note" name="note" placeholder="Ghi chú nghiệp vụ nếu cần" rows={4} />
       </div>
 
       {state.status === "error" && (
         <Alert variant="destructive" className="border-destructive/30 bg-destructive/10">
           <CircleAlert className="size-4" />
-          <AlertTitle>Khong the tao container</AlertTitle>
+          <AlertTitle>Không thể tạo container</AlertTitle>
           <AlertDescription className="space-y-2">
             <p>{state.message}</p>
             {state.issues?.length ? (
@@ -424,15 +424,15 @@ export function ContainerCreateDialog({
     <>
       <Button onClick={() => setOpen(true)}>
         <Plus className="mr-2 size-4" />
-        Them container
+        Thêm container
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Them container</DialogTitle>
+            <DialogTitle>Thêm container</DialogTitle>
             <DialogDescription>
-              Workflow nay ghi truc tiep vao `containers` va `container_events`.
+              Workflow này ghi trực tiếp vào `containers` và `container_events`.
             </DialogDescription>
           </DialogHeader>
 

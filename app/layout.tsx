@@ -15,8 +15,8 @@ const firaCode = Fira_Code({
 });
 
 export const metadata: Metadata = {
-  title: 'tracking-container',
-  description: 'tracking-container for logistics management, container tracking, and transport optimization',
+  title: 'Tracking Container | Quản lý container',
+  description: 'Nền tảng theo dõi container, hành trình và vận tải sà lan từ cảng biển đến cảng cạn',
   icons: {
     icon: [
       {

@@ -5,12 +5,12 @@ const SUPABASE_PUBLISHABLE_KEY =
 
 export function getSupabaseEnv() {
   if (!SUPABASE_URL) {
-    throw new Error("NEXT_PUBLIC_SUPABASE_URL is required for Supabase Auth")
+    throw new Error("Cần có NEXT_PUBLIC_SUPABASE_URL để dùng Supabase Auth.")
   }
 
   if (!SUPABASE_PUBLISHABLE_KEY) {
     throw new Error(
-      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY is required for Supabase Auth",
+      "Cần có NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY hoặc NEXT_PUBLIC_SUPABASE_ANON_KEY để dùng Supabase Auth.",
     )
   }
 

@@ -67,10 +67,7 @@ export function ContainersPageClient({
   const [statusFilter, setStatusFilter] =
     useState<ContainerDirectoryFilterStatus>("all")
 
-  const stats = useMemo(
-    () => buildContainerDirectoryStats(containers),
-    [containers],
-  )
+  const stats = useMemo(() => buildContainerDirectoryStats(containers), [containers])
   const filteredContainers = useMemo(
     () =>
       filterContainerDirectoryItems(containers, {
@@ -82,25 +79,25 @@ export function ContainersPageClient({
 
   return (
     <DashboardLayout
-      title="Quan ly container"
-      description="Theo doi container, trang thai hien tai va dich den tu du lieu that"
+      title="Quản lý container"
+      description="Theo dõi container, trạng thái hiện tại và đích đến từ dữ liệu thật"
     >
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard title="Tong container" value={stats.total} />
-          <StatCard title="Tai bai cang bien" value={stats.atSeaportYard} />
-          <StatCard title="Dang hanh trinh" value={stats.inTransit} />
-          <StatCard title="Tai bai cang can" value={stats.atDryportYard} />
+          <StatCard title="Tổng container" value={stats.total} />
+          <StatCard title="Tại bãi cảng biển" value={stats.atSeaportYard} />
+          <StatCard title="Đang hành trình" value={stats.inTransit} />
+          <StatCard title="Tại bãi cảng cạn" value={stats.atDryportYard} />
         </div>
 
         <Card className="border-border/50">
           <CardHeader className="pb-4">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="space-y-1">
-                <CardTitle className="text-base font-medium">Danh sach container</CardTitle>
+                <CardTitle className="text-base font-medium">Danh sách container</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  `Them container` va `Import CSV/Excel/EDI` dang ghi truc tiep vao
-                  Supabase. `Xuat file` se mo sau.
+                  Thêm container tại đây. Import CSV/Excel/EDI sẽ mở modal trước, sau đó chuyển sang
+                  page preview riêng để xem dữ liệu dài dễ hơn.
                 </p>
               </div>
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
@@ -108,7 +105,7 @@ export function ContainersPageClient({
                   <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     className="w-full bg-secondary pl-9 md:w-72"
-                    placeholder="Tim theo ma, hang tau, khach hang, tuyen..."
+                    placeholder="Tìm theo mã, hãng tàu, khách hàng, tuyến..."
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
                   />
@@ -120,23 +117,23 @@ export function ContainersPageClient({
                   }
                 >
                   <SelectTrigger className="w-full md:w-52">
-                    <SelectValue placeholder="Trang thai" />
+                    <SelectValue placeholder="Trạng thái" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tat ca trang thai</SelectItem>
-                    <SelectItem value="new">Moi tao</SelectItem>
-                    <SelectItem value="at_seaport_yard">Tai bai cang bien</SelectItem>
-                    <SelectItem value="on_barge">Da xep len sa lan</SelectItem>
-                    <SelectItem value="in_transit">Dang hanh trinh</SelectItem>
-                    <SelectItem value="at_dryport_yard">Tai bai cang can</SelectItem>
-                    <SelectItem value="released">Da giai phong</SelectItem>
-                    <SelectItem value="hold">Dang giu</SelectItem>
+                    <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                    <SelectItem value="new">Mới tạo</SelectItem>
+                    <SelectItem value="at_seaport_yard">Tại bãi cảng biển</SelectItem>
+                    <SelectItem value="on_barge">Đã xếp lên sà lan</SelectItem>
+                    <SelectItem value="in_transit">Đang hành trình</SelectItem>
+                    <SelectItem value="at_dryport_yard">Tại bãi cảng cạn</SelectItem>
+                    <SelectItem value="released">Đã giải phóng</SelectItem>
+                    <SelectItem value="hold">Đang giữ</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button variant="outline" size="icon" disabled>
                   <Download className="size-4" />
                 </Button>
-                <ContainerImportDialog formOptions={formOptions} />
+                <ContainerImportDialog />
                 <ContainerCreateDialog formOptions={formOptions} />
               </div>
             </div>
@@ -148,16 +145,16 @@ export function ContainersPageClient({
                   <EmptyMedia variant="icon">
                     <Package />
                   </EmptyMedia>
-                  <EmptyTitle>Chua co container trong co so du lieu</EmptyTitle>
+                  <EmptyTitle>Chưa có container trong cơ sở dữ liệu</EmptyTitle>
                   <EmptyDescription>
-                    Ban co the them thu cong hoac import CSV/Excel/EDI. Khi insert
-                    thanh cong, danh sach va KPI se tu dong cap nhat tai day.
+                    Bạn có thể thêm thủ công hoặc mở modal import CSV/Excel/EDI để tạo phiên xem
+                    trước riêng. Khi ghi thành công, danh sách và KPI sẽ tự động cập nhật tại đây.
                   </EmptyDescription>
                 </EmptyHeader>
               </Empty>
             ) : filteredContainers.length === 0 ? (
               <div className="flex min-h-40 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
-                Khong co container phu hop voi bo loc hien tai.
+                Không có container phù hợp với bộ lọc hiện tại.
               </div>
             ) : (
               <>
@@ -165,14 +162,14 @@ export function ContainersPageClient({
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead>Ma container</TableHead>
-                        <TableHead>Loai</TableHead>
-                        <TableHead>Trang thai</TableHead>
-                        <TableHead>Vi tri</TableHead>
-                        <TableHead>Dich den</TableHead>
-                        <TableHead>Tuyen</TableHead>
-                        <TableHead>ETA</TableHead>
-                        <TableHead>Trong luong</TableHead>
+                        <TableHead>Mã container</TableHead>
+                        <TableHead>Loại</TableHead>
+                        <TableHead>Trạng thái</TableHead>
+                        <TableHead>Vị trí</TableHead>
+                        <TableHead>Đích đến</TableHead>
+                        <TableHead>Tuyến</TableHead>
+                        <TableHead>Dự kiến đến</TableHead>
+                        <TableHead>Trọng lượng</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -185,7 +182,7 @@ export function ContainersPageClient({
                               <div className="space-y-1">
                                 <p className="font-mono font-medium">{container.containerNo}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  {container.shippingLineLabel ?? "Chua gan hang tau"}
+                                  {container.shippingLineLabel ?? "Chưa gắn hãng tàu"}
                                 </p>
                               </div>
                             </TableCell>
@@ -202,7 +199,7 @@ export function ContainersPageClient({
                               {container.destinationLabel}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {container.routeLabel ?? "Chua gan tuyen"}
+                              {container.routeLabel ?? "Chưa gắn tuyến"}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {container.etaLabel}
@@ -217,7 +214,7 @@ export function ContainersPageClient({
                   </Table>
                 </div>
                 <div className="pt-4 text-sm text-muted-foreground">
-                  Hien thi {filteredContainers.length} trong {containers.length} container.
+                  Hiển thị {filteredContainers.length} trong {containers.length} container.
                 </div>
               </>
             )}

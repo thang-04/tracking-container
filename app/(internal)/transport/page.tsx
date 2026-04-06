@@ -58,7 +58,7 @@ export default async function TransportPage() {
           <StatCard title="Sẵn sàng khai thác" value={summary.availableVehicles} />
           <StatCard title="Chuyến hoạt động" value={summary.activeVoyages} />
           <StatCard title="Container chờ phân công" value={summary.pendingContainers} />
-          <StatCard title="Container trong manifest" value={summary.assignedContainers} />
+          <StatCard title="Container đã phân công" value={summary.assignedContainers} />
         </div>
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -87,7 +87,7 @@ export default async function TransportPage() {
                     </EmptyMedia>
                     <EmptyTitle>Không có container chờ phân công</EmptyTitle>
                     <EmptyDescription>
-                      Container đủ điều kiện nhưng chưa gán `current_voyage_id` sẽ hiển thị tại đây.
+                      Container đủ điều kiện nhưng chưa được gán chuyến hiện tại sẽ hiển thị tại đây.
                     </EmptyDescription>
                   </EmptyHeader>
                 </Empty>
@@ -143,7 +143,7 @@ export default async function TransportPage() {
                     </EmptyMedia>
                     <EmptyTitle>Chưa có sà lan trong hệ thống</EmptyTitle>
                     <EmptyDescription>
-                      Bảng `vehicles` hiện chưa có record kiểu `barge`.
+                      Danh sách phương tiện hiện chưa có bản ghi loại sà lan.
                     </EmptyDescription>
                   </EmptyHeader>
                 </Empty>
@@ -207,7 +207,7 @@ export default async function TransportPage() {
                   </EmptyMedia>
                   <EmptyTitle>Chưa có chuyến nào trong hệ thống</EmptyTitle>
                   <EmptyDescription>
-                    Khi bảng `voyages` có dữ liệu thật, lịch chuyến và manifest sẽ hiển thị tại đây.
+                    Khi bảng `voyages` có dữ liệu thật, lịch chuyến và danh sách container sẽ hiển thị tại đây.
                   </EmptyDescription>
                 </EmptyHeader>
               </Empty>
@@ -220,9 +220,9 @@ export default async function TransportPage() {
                       <TableHead>Tuyến</TableHead>
                       <TableHead>Sà lan</TableHead>
                       <TableHead>Trạng thái</TableHead>
-                      <TableHead>Manifest</TableHead>
-                      <TableHead>ETD</TableHead>
-                      <TableHead>ETA</TableHead>
+                      <TableHead>Số container</TableHead>
+                      <TableHead>Dự kiến rời</TableHead>
+                      <TableHead>Dự kiến đến</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -239,7 +239,7 @@ export default async function TransportPage() {
                               <p>{voyage.routeLabel}</p>
                               {voyage.checkpointLabel ? (
                                 <p className="text-xs text-muted-foreground">
-                                  Checkpoint: {voyage.checkpointLabel}
+                                  Mốc kiểm tra: {voyage.checkpointLabel}
                                 </p>
                               ) : null}
                             </div>

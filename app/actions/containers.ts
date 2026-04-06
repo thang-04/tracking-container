@@ -1,12 +1,14 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 
 import {
   initialContainerImportActionState,
+  initialContainerImportSubmitActionState,
   initialCreateContainerActionState,
   type ContainerImportActionState,
-  type ContainerImportPreviewRow,
+  type ContainerImportSubmitActionState,
   type CreateContainerActionState,
   type CreateContainerFieldName,
 } from "@/lib/containers/container-action-state"
@@ -25,10 +27,11 @@ import {
   readEdiImportSourcePayload,
 } from "@/lib/containers/container-import-source"
 import {
-  persistImportedContainerBatch,
+  importContainerImportPreviewBatch,
+  persistContainerImportPreviewBatch,
   persistManualContainer,
-  persistRejectedContainerImportBatch,
 } from "@/lib/containers/container-persistence"
+import { isLocalAuthMockEnabled } from "@/lib/auth/mock-auth"
 import { requireInternalAccess } from "@/lib/auth/server"
 
 function readStringValue(formData: FormData, key: string) {
@@ -55,15 +58,9 @@ function createManualContainerRow(formData: FormData): ParsedContainerImportRow 
       billNo: readStringValue(formData, "billNo") || null,
       sealNo: readStringValue(formData, "sealNo") || null,
       currentPortCode: readStringValue(formData, "currentPortCode") || null,
-      currentYardCode: hasYardLocation
-        ? readStringValue(formData, "currentYardCode") || null
-        : null,
-      currentBlockCode: hasYardLocation
-        ? readStringValue(formData, "currentBlockCode") || null
-        : null,
-      currentSlotCode: hasYardLocation
-        ? readStringValue(formData, "currentSlotCode") || null
-        : null,
+      currentYardCode: hasYardLocation ? readStringValue(formData, "currentYardCode") || null : null,
+      currentBlockCode: hasYardLocation ? readStringValue(formData, "currentBlockCode") || null : null,
+      currentSlotCode: hasYardLocation ? readStringValue(formData, "currentSlotCode") || null : null,
       statusHint: null,
       note: readStringValue(formData, "note") || null,
     },
@@ -122,7 +119,7 @@ function mapIssueToField(issue: string): CreateContainerFieldName | null {
 
 function buildCreateContainerErrorState(
   issues: string[],
-  message = "Khong the tao container voi du lieu hien tai.",
+  message = "Không thể tạo container với dữ liệu hiện tại.",
 ): CreateContainerActionState {
   const fieldErrors: Partial<Record<CreateContainerFieldName, string>> = {}
 
@@ -142,32 +139,12 @@ function buildCreateContainerErrorState(
   }
 }
 
-function buildPreviewRows(rows: ReturnType<typeof validateContainerImportRows>["rows"]) {
-  return rows.map(
-    (row) =>
-      ({
-        rowNo: row.rowNo,
-        containerNo: row.data.containerNo ?? "",
-        containerTypeCode: row.data.containerTypeCode ?? "",
-        customerCode: row.data.customerCode ?? "",
-        routeCode: row.data.routeCode ?? "",
-        shippingLineCode: row.data.shippingLineCode,
-        currentPortCode: row.data.currentPortCode,
-        currentYardCode: row.data.currentYardCode,
-        currentBlockCode: row.data.currentBlockCode,
-        currentSlotCode: row.data.currentSlotCode,
-        isValid: row.isValid,
-        errors: row.errors,
-      }) satisfies ContainerImportPreviewRow,
-  )
-}
-
 function buildImportErrorState(
   message: string,
   issues: string[] = [],
   source?: {
-    text: string | null
-    fileName: string
+    text?: string | null
+    fileName?: string
     summary?: string
   },
 ): ContainerImportActionState {
@@ -176,7 +153,7 @@ function buildImportErrorState(
     message,
     issues,
     sourceText: source?.text ?? undefined,
-    sourceFileName: source?.text !== null && source?.text !== undefined ? source.fileName : undefined,
+    sourceFileName: source?.fileName ?? undefined,
     sourceSummary: source?.summary,
   }
 }
@@ -186,8 +163,17 @@ export async function createContainerAction(
   formData: FormData,
 ): Promise<CreateContainerActionState> {
   const auth = await requireInternalAccess()
+
+  if (isLocalAuthMockEnabled()) {
+    return buildCreateContainerErrorState([], "Chế độ mock local không hỗ trợ tạo container.")
+  }
+
   const referenceData = await getContainerWorkflowReferenceData()
-  const validationContext = toContainerImportValidationContext(referenceData)
+  const validationContext = {
+    ...toContainerImportValidationContext(referenceData),
+    requireCustomerCode: true,
+    requireRouteCode: true,
+  }
   const validation = validateContainerImportRows(
     [createManualContainerRow(formData)],
     validationContext,
@@ -197,7 +183,7 @@ export async function createContainerAction(
 
   if (!row || !row.isValid || !row.resolved) {
     return buildCreateContainerErrorState(
-      row?.errors ?? ["Khong doc duoc du lieu tu form tao container."],
+      row?.errors ?? ["Không đọc được dữ liệu từ form tạo container."],
     )
   }
 
@@ -210,29 +196,24 @@ export async function createContainerAction(
 
     return {
       status: "success",
-      message: `Da tao container ${container.containerNo}.`,
+      message: `Đã tạo container ${container.containerNo}.`,
     }
   } catch (error) {
     return buildCreateContainerErrorState(
-      ["Du lieu vua thay doi trong he thong. Vui long kiem tra lai va thu lai."],
-      error instanceof Error ? error.message : "Khong the tao container.",
+      ["Dữ liệu vừa thay đổi trong hệ thống. Vui lòng kiểm tra lại và thử lại."],
+      error instanceof Error ? error.message : "Không thể tạo container.",
     )
   }
 }
 
-export async function previewOrImportContainersAction(
+export async function startContainerImportPreviewAction(
   _previousState: ContainerImportActionState = initialContainerImportActionState,
   formData: FormData,
 ): Promise<ContainerImportActionState> {
   const auth = await requireInternalAccess()
-  const intent = readStringValue(formData, "intent") === "import" ? "import" : "preview"
-  const mode = readStringValue(formData, "mode") === "edi" ? "edi" : "csv"
-  const customerCode = readStringValue(formData, "importCustomerCode")
-  const routeCode = readStringValue(formData, "importRouteCode")
-  const persistedSourceSummary = readStringValue(formData, "persistedSourceSummary")
 
-  let fileName = "containers.csv"
-  let inputErrors: string[] = []
+  const mode = readStringValue(formData, "mode") === "edi" ? "edi" : "csv"
+  let fileName = mode === "edi" ? "edi-inline.txt" : "containers.csv"
   let parsed:
     | ReturnType<typeof parseSpreadsheetContainerRows>
     | (ReturnType<typeof parseEdiContainerRows> & {
@@ -243,79 +224,56 @@ export async function previewOrImportContainersAction(
 
   if (mode === "csv") {
     const spreadsheetPayload = await readCsvImportSourcePayload(formData)
-
     fileName = spreadsheetPayload.fileName
-    inputErrors = spreadsheetPayload.errors
 
-    if (spreadsheetPayload.errors.length === 0) {
-      if (spreadsheetPayload.format === "xlsx") {
-        if (spreadsheetPayload.bytes) {
-          parsed = parseSpreadsheetContainerRows(
-            spreadsheetPayload.fileName,
-            spreadsheetPayload.bytes,
-            {
-              customerCode,
-              routeCode,
-            },
-          )
-        }
-      } else if (spreadsheetPayload.text) {
-        parsed = parseSpreadsheetContainerRows(
-          spreadsheetPayload.fileName,
-          spreadsheetPayload.text,
-          {
-            customerCode,
-            routeCode,
-          },
-        )
+    if (spreadsheetPayload.errors.length > 0) {
+      return buildImportErrorState(
+        spreadsheetPayload.errors[0] ?? "Không đọc được file import.",
+        spreadsheetPayload.errors,
+        { fileName },
+      )
+    }
+
+    if (spreadsheetPayload.format === "xlsx") {
+      if (!spreadsheetPayload.bytes) {
+        return buildImportErrorState("Không đọc được file Excel.", [], { fileName })
       }
+
+      parsed = parseSpreadsheetContainerRows(spreadsheetPayload.fileName, spreadsheetPayload.bytes)
+    } else if (spreadsheetPayload.text) {
+      parsed = parseSpreadsheetContainerRows(spreadsheetPayload.fileName, spreadsheetPayload.text)
     }
   } else {
     const ediPayload = await readEdiImportSourcePayload(formData)
-
     fileName = ediPayload.fileName
-    inputErrors = ediPayload.errors
 
-    if (ediPayload.errors.length === 0 && ediPayload.text) {
+    if (ediPayload.errors.length > 0) {
+      return buildImportErrorState(
+        ediPayload.errors[0] ?? "Vui lòng dán nội dung EDI hoặc tải file .edi/.txt.",
+        ediPayload.errors,
+        { fileName },
+      )
+    }
+
+    if (ediPayload.text) {
       parsed = {
         ...parseEdiContainerRows(ediPayload.text),
         persistedText: ediPayload.text,
-        sourceSummary: persistedSourceSummary || `EDI: ${ediPayload.fileName}`,
+        sourceSummary: `EDI: ${ediPayload.fileName}`,
       }
     }
   }
 
   if (!parsed) {
-    return buildImportErrorState(
-      inputErrors[0] ?? "Khong doc duoc file import.",
-      inputErrors,
-    )
+    return buildImportErrorState("Không đọc được nội dung import.", [], { fileName })
   }
 
   if (parsed.errors.length > 0) {
-    if (intent === "import") {
-      await persistRejectedContainerImportBatch([], {
-        sourceMode: mode,
-        fileName,
-        uploadedBy: auth.userId,
-        note: parsed.errors.join(" | "),
-      })
-    }
-
-    return buildImportErrorState(
-      parsed.errors[0] ?? "Khong doc duoc noi dung import.",
-      parsed.errors,
-      {
-        // CSV/Excel: dung echo noi dung loi vao hidden field — lan submit sau khong file van gui lai
-        // text cu -> lap loi "thieu cot". EDI: giu text de nguoi dung sua paste.
-        text:
-          mode === "edi" && parsed.persistedText
-            ? parsed.persistedText
-            : null,
-        fileName,
-        summary: parsed.sourceSummary,
-      },
-    )
+    return buildImportErrorState(parsed.errors[0] ?? "Không đọc được nội dung import.", parsed.errors, {
+      fileName,
+      text: mode === "edi" ? parsed.persistedText : null,
+      summary: parsed.sourceSummary,
+    })
   }
 
   const referenceData = await getContainerWorkflowReferenceData()
@@ -324,63 +282,50 @@ export async function previewOrImportContainersAction(
     toContainerImportValidationContext(referenceData),
   )
 
-  const previewState: ContainerImportActionState = {
-    status: "preview",
-    message:
-      validation.summary.invalidRows > 0
-        ? "Can sua het loi truoc khi nhap du lieu."
-        : "Du lieu hop le. Ban co the nhap vao he thong.",
-    sourceText: parsed.persistedText,
-    sourceFileName: fileName,
-    sourceSummary: parsed.sourceSummary,
-    summary: validation.summary,
-    rows: buildPreviewRows(validation.rows),
-    issues:
-      validation.summary.invalidRows > 0
-        ? validation.rows.flatMap((row) => row.errors).slice(0, 5)
-        : undefined,
-  }
+  const batch = await persistContainerImportPreviewBatch(validation.rows, {
+    sourceMode: mode,
+    fileName,
+    uploadedBy: auth.userId,
+    note: parsed.sourceSummary,
+  })
 
-  if (intent === "preview") {
-    return previewState
-  }
+  redirect(`/containers/import/${batch.id}`)
+}
 
-  if (validation.summary.invalidRows > 0) {
-    await persistRejectedContainerImportBatch(validation.rows, {
-      sourceMode: mode,
-      fileName,
-      uploadedBy: auth.userId,
-      note: "Import blocked because validation errors remain.",
-    })
+export async function previewOrImportContainersAction(
+  previousState: ContainerImportActionState = initialContainerImportActionState,
+  formData: FormData,
+): Promise<ContainerImportActionState> {
+  return startContainerImportPreviewAction(previousState, formData)
+}
 
-    return previewState
+export async function importContainerImportPreviewBatchAction(
+  _previousState: ContainerImportSubmitActionState = initialContainerImportSubmitActionState,
+  formData: FormData,
+): Promise<ContainerImportSubmitActionState> {
+  const auth = await requireInternalAccess()
+
+  const batchId = readStringValue(formData, "batchId")
+
+  if (!batchId) {
+    return {
+      status: "error",
+      message: "Thiếu mã batch preview.",
+    }
   }
 
   try {
-    const result = await persistImportedContainerBatch(validation.rows, {
-      sourceMode: mode,
-      fileName,
+    await importContainerImportPreviewBatch(batchId, {
       uploadedBy: auth.userId,
     })
 
     revalidatePath("/containers")
-
-    return {
-      status: "success",
-      message: `Da import ${result.importedCount} container tu ${fileName}.`,
-    }
+    redirect("/containers")
   } catch (error) {
-    await persistRejectedContainerImportBatch(validation.rows, {
-      sourceMode: mode,
-      fileName,
-      uploadedBy: auth.userId,
-      note: error instanceof Error ? error.message : "Import transaction failed.",
-    })
-
     return {
-      ...previewState,
       status: "error",
-      message: "Import that bai do du lieu vua thay doi. Vui long kiem tra lai va thu lai.",
+      message:
+        error instanceof Error ? error.message : "Không thể nhập dữ liệu từ batch preview.",
     }
   }
 }

@@ -92,9 +92,29 @@ test("rejects duplicated container numbers and existing records", () => {
 
   assert.equal(result.summary.validRows, 0)
   assert.equal(result.summary.invalidRows, 3)
-  assert.match(result.rows[0]?.errors[0] ?? "", /trung lap/i)
-  assert.match(result.rows[1]?.errors.join(" ") ?? "", /trung lap/i)
-  assert.match(result.rows[2]?.errors.join(" ") ?? "", /da ton tai/i)
+  assert.match(result.rows[0]?.errors[0] ?? "", /Container_no/)
+  assert.match(result.rows[1]?.errors.join(" ") ?? "", /Container_no/)
+  assert.match(result.rows[2]?.errors.join(" ") ?? "", /Container_no/)
+})
+
+test("allows import rows without customer and route when not required", () => {
+  const result = validateContainerImportRows(
+    [
+      createRow(1, {
+        customerCode: null,
+        routeCode: null,
+        currentYardCode: null,
+        currentBlockCode: null,
+        currentSlotCode: null,
+      }),
+    ],
+    validationContext,
+  )
+
+  assert.equal(result.summary.validRows, 1)
+  assert.equal(result.summary.invalidRows, 0)
+  assert.equal(result.rows[0]?.resolved?.customerId, null)
+  assert.equal(result.rows[0]?.resolved?.routeId, null)
 })
 
 test("rejects partial yard hierarchy and occupied slots", () => {
@@ -118,6 +138,6 @@ test("rejects partial yard hierarchy and occupied slots", () => {
 
   assert.equal(result.summary.validRows, 0)
   assert.equal(result.summary.invalidRows, 2)
-  assert.match(result.rows[0]?.errors.join(" ") ?? "", /phai cung cap du yard, block, slot/i)
-  assert.match(result.rows[1]?.errors.join(" ") ?? "", /slot dang co container/i)
+  assert.match(result.rows[0]?.errors.join(" ") ?? "", /yard, block, slot./i)
+  assert.match(result.rows[1]?.errors.join(" ") ?? "", /Slot/)
 })

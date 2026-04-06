@@ -102,7 +102,7 @@ export async function readCsvImportSourcePayload(
     text: null,
     bytes: null,
     fileName: "containers.csv",
-    errors: ["Vui long chon file CSV hoac Excel de kiem tra."],
+    errors: ["Vui lòng chọn file CSV hoặc Excel để kiểm tra."],
   } satisfies SpreadsheetImportSourcePayload
 }
 
@@ -140,6 +140,6 @@ export async function readEdiImportSourcePayload(formData: FormData) {
   return {
     text: null,
     fileName: "edi-inline.txt",
-    errors: ["Vui long paste noi dung EDI hoac tai file .edi/.txt."],
+    errors: ["Vui lòng dán nội dung EDI hoặc tải file .edi/.txt."],
   }
 }

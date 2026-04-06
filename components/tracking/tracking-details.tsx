@@ -141,7 +141,7 @@ export function TrackingDetails({
               {vehicle ? "Chi tiết phương tiện" : "Chi tiết vị trí"}
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              {vehicle ? "Thông tin vận hành và manifest hiện tại" : "Thông tin cảng và số container đang ghi nhận"}
+              {vehicle ? "Thông tin vận hành và danh sách container hiện tại" : "Thông tin cảng và số container đang ghi nhận"}
             </p>
           </div>
           {onClear && (
@@ -179,7 +179,7 @@ export function TrackingDetails({
                 <p className="text-sm font-medium">{getStatusLabel(vehicle.voyageStatus)}</p>
               </div>
               <div className="rounded-lg bg-muted/50 p-3">
-                <p className="text-xs text-muted-foreground">ETA</p>
+                <p className="text-xs text-muted-foreground">Dự kiến đến</p>
                 <p className="text-sm font-medium">{formatDate(vehicle.eta)}</p>
               </div>
               <div className="rounded-lg bg-muted/50 p-3">
@@ -190,7 +190,7 @@ export function TrackingDetails({
 
             <div className="rounded-lg bg-muted/50 p-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">Manifest</p>
+                <p className="text-xs text-muted-foreground">Danh sách container</p>
                 <Badge variant="outline">{vehicle.manifestCount ?? vehicle.containers?.length ?? 0} container</Badge>
               </div>
               <div className="mt-3 space-y-2">
@@ -201,7 +201,7 @@ export function TrackingDetails({
                   </div>
                 ))}
                 {(vehicle.containers?.length ?? 0) === 0 && (
-                  <p className="text-sm text-muted-foreground">Chưa có container trong manifest.</p>
+                  <p className="text-sm text-muted-foreground">Chưa có container trong danh sách hiện tại.</p>
                 )}
               </div>
             </div>

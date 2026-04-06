@@ -17,7 +17,7 @@ export function ProjectLogo({
   return (
     <div
       className={cn(
-        "flex items-center rounded-2xl bg-white px-3 py-2 shadow-sm ring-1 ring-slate-200/70",
+        "flex items-center bg-transparent p-0",
         align === "center" ? "justify-center" : "justify-start",
         className
       )}
@@ -30,7 +30,7 @@ export function ProjectLogo({
         height={698}
         priority={priority}
         sizes="(max-width: 640px) 100vw, 280px"
-        className={cn("h-full w-auto max-w-full object-contain", imageClassName)}
+        className={cn("block h-full w-auto max-w-full object-contain", imageClassName)}
       />
     </div>
   )

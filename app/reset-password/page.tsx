@@ -8,7 +8,7 @@ export default function ResetPasswordPage() {
   return (
     <AuthShell
       eyebrow="Recovery Session"
-      title="Thiết lập lại mật khẩu và quay lại đúng luồng làm việc."
+      title="Thiết lập lại mật khẩu."
       description="Liên kết từ email sẽ tạo phiên recovery tạm thời để bạn cập nhật mật khẩu an toàn."
     >
       <AuthCard

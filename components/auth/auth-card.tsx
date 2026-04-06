@@ -30,9 +30,9 @@ export function AuthCard({
           <h2 className="text-3xl font-semibold tracking-tight text-white">
             {title}
           </h2>
-          <p className="max-w-md text-sm leading-6 text-slate-300">
-            {description}
-          </p>
+          {description.trim() ? (
+            <p className="max-w-md text-sm leading-6 text-slate-300">{description}</p>
+          ) : null}
         </div>
       </div>
 

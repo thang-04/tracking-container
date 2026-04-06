@@ -1,11 +1,11 @@
-export const CONTAINER_IMPORT_REQUIRED_HEADERS = [
+﻿export const CONTAINER_IMPORT_REQUIRED_HEADERS = [
   "container_no",
   "container_type_code",
-  "customer_code",
-  "route_code",
 ] as const
 
 export const CONTAINER_IMPORT_OPTIONAL_HEADERS = [
+  "customer_code",
+  "route_code",
   "shipping_line_code",
   "gross_weight_kg",
   "eta",
@@ -114,13 +114,15 @@ export type ContainerImportValidationContext = {
   }>
   existingContainerNos: readonly string[]
   occupiedSlotIds: readonly string[]
+  requireCustomerCode?: boolean
+  requireRouteCode?: boolean
 }
 
 export type ResolvedContainerMutationInput = {
   containerNo: string
   containerTypeId: string
-  customerId: string
-  routeId: string
+  customerId: string | null
+  routeId: string | null
   shippingLineId: string | null
   currentStatus: ContainerWorkflowStatus
   customsStatus: ContainerWorkflowCustomsStatus

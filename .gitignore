@@ -20,3 +20,13 @@ node_modules/
 /lib/generated/prisma
 .superpowers/
 .next-start-*.log
+
+# Local runtime logs and generated test/build artifacts
+*.log
+*.log.*
+coverage/
+test-results/
+playwright-report/
+.nyc_output/
+*.tsbuildinfo
+*.xlsx

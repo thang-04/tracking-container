@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { initialAuthActionState } from "@/lib/auth/action-state"
+import { isLocalAuthMockEnabled } from "@/lib/auth/mock-auth"
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -24,11 +25,11 @@ function SubmitButton() {
       {pending ? (
         <>
           <LoaderCircle className="h-4 w-4 animate-spin" />
-          Đang gửi liên kết
+          Đang gửi
         </>
       ) : (
         <>
-          Gửi liên kết đặt lại
+          Gửi liên kết
           <Send className="h-4 w-4" />
         </>
       )}
@@ -37,11 +38,31 @@ function SubmitButton() {
 }
 
 export function ForgotPasswordForm() {
-  const [state, formAction] = useActionState(
-    forgotPasswordAction,
-    initialAuthActionState,
-  )
+  if (isLocalAuthMockEnabled()) {
+    return (
+      <div className="space-y-5">
+        <Alert className="border-sky-400/20 bg-sky-500/10 text-slate-100">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>Chế độ local mock</AlertTitle>
+          <AlertDescription className="text-slate-300">
+            Không gửi email đặt lại mật khẩu.
+          </AlertDescription>
+        </Alert>
 
+        <div className="flex items-center justify-end">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 text-sm font-medium text-sky-200 transition hover:text-sky-100"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Quay lại đăng nhập
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const [state, formAction] = useActionState(forgotPasswordAction, initialAuthActionState)
   const isSuccess = state.status === "success"
 
   return (
@@ -84,11 +105,10 @@ export function ForgotPasswordForm() {
 
       <SubmitButton />
 
-      <div className="flex items-center justify-between gap-4 text-sm text-slate-400">
-        <span>Liên kết đặt lại sẽ được gửi tới email đã đăng ký.</span>
+      <div className="flex items-center justify-end">
         <Link
           href="/login"
-          className="inline-flex items-center gap-2 font-medium text-sky-200 transition hover:text-sky-100"
+          className="inline-flex items-center gap-2 text-sm font-medium text-sky-200 transition hover:text-sky-100"
         >
           <ArrowLeft className="h-4 w-4" />
           Quay lại đăng nhập

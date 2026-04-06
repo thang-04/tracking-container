@@ -20,14 +20,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <AuthShell
       eyebrow="Đăng nhập hệ thống"
-      title="Đăng nhập để tiếp tục vận hành và theo dõi container."
+      title="Hệ thống vận hành và theo dõi container."
       description="Dùng email đã được cấp quyền để vào đúng không gian làm việc."
       compact
+      showHighlights
     >
       <AuthCard
         eyebrow="Đăng nhập"
         title="Truy cập Tracking Container"
-        description="Nhập email và mật khẩu của bạn."
+        description=""
       >
         {params.reset === "success" && (
           <div className="mb-5 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-slate-200">

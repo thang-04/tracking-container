@@ -29,8 +29,7 @@ export type ContainerImportPreviewRow = {
   rowNo: number
   containerNo: string
   containerTypeCode: string
-  customerCode: string
-  routeCode: string
+  rawData: Record<string, string | null>
   shippingLineCode: string | null
   currentPortCode: string | null
   currentYardCode: string | null
@@ -56,5 +55,15 @@ export type ContainerImportActionState = {
 }
 
 export const initialContainerImportActionState: ContainerImportActionState = {
+  status: "idle",
+}
+
+export type ContainerImportSubmitActionState = {
+  status: "idle" | "error"
+  message?: string
+  issues?: string[]
+}
+
+export const initialContainerImportSubmitActionState: ContainerImportSubmitActionState = {
   status: "idle",
 }

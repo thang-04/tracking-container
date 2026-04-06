@@ -28,6 +28,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  isLocalAuthMockEnabled,
+  readLocalAuthSessionFromCookieHeader,
+} from "@/lib/auth/mock-auth"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 
@@ -73,42 +77,65 @@ function getInitials(value: string) {
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const [email, setEmail] = useState<string | null>(null)
+  const mockMode = isLocalAuthMockEnabled()
+  const [account, setAccount] = useState<{
+    email: string | null
+    fullName: string | null
+  }>({
+    email: null,
+    fullName: null,
+  })
 
   useEffect(() => {
+    if (mockMode) {
+      const session = readLocalAuthSessionFromCookieHeader(document.cookie)
+
+      setAccount({
+        email: session?.email ?? null,
+        fullName: session?.fullName ?? null,
+      })
+
+      return
+    }
+
     const supabase = createClient()
     let active = true
 
-    const syncEmail = (nextEmail: string | null) => {
+    const syncAccount = (nextEmail: string | null) => {
       if (active) {
-        setEmail(nextEmail)
+        setAccount({
+          email: nextEmail,
+          fullName: null,
+        })
       }
     }
 
     supabase.auth.getUser().then((result: UserResponse) => {
-      syncEmail(result.data.user?.email ?? null)
+      syncAccount(result.data.user?.email ?? null)
     })
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-      syncEmail(session?.user?.email ?? null)
-    })
+    } = supabase.auth.onAuthStateChange(
+      (_event: AuthChangeEvent, session: Session | null) => {
+        syncAccount(session?.user?.email ?? null)
+      },
+    )
 
     return () => {
       active = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [mockMode])
 
-  const accountName = formatDisplayName(email)
+  const accountName = account.fullName ?? formatDisplayName(account.email)
   const accountInitials = getInitials(accountName)
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar">
       <div className="border-b border-sidebar-border px-4 py-4">
         <Link href="/" className="block">
-          <ProjectLogo className="h-20 w-full" priority />
+          <ProjectLogo className="h-24 w-full" priority />
         </Link>
       </div>
 
@@ -123,7 +150,7 @@ export function AppSidebar() {
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                 isActive
                   ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
               )}
             >
               <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -152,7 +179,7 @@ export function AppSidebar() {
                   {accountName}
                 </span>
                 <span className="block truncate text-xs text-sidebar-foreground/60">
-                  {email ?? "Mở menu tài khoản"}
+                  {account.email ?? "Mở menu tài khoản"}
                 </span>
               </div>
               <ChevronsUpDown className="h-4 w-4 text-sidebar-foreground/60" />
@@ -162,7 +189,7 @@ export function AppSidebar() {
             <DropdownMenuLabel className="space-y-1">
               <div className="text-sm font-medium">{accountName}</div>
               <div className="text-xs font-normal text-muted-foreground">
-                {email ?? "Phiên nội bộ đang hoạt động"}
+                {account.email ?? "Phiên nội bộ đang hoạt động"}
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

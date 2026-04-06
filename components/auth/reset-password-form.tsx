@@ -16,6 +16,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  isLocalAuthMockEnabled,
+  LOCAL_AUTH_MOCK_ACCOUNT,
+} from "@/lib/auth/mock-auth"
 import { createClient } from "@/lib/supabase/client"
 
 type RecoveryState = "checking" | "ready" | "invalid" | "saving" | "success"
@@ -23,6 +27,30 @@ type RecoveryState = "checking" | "ready" | "invalid" | "saving" | "success"
 const MIN_PASSWORD_LENGTH = 8
 
 export function ResetPasswordForm() {
+  if (isLocalAuthMockEnabled()) {
+    return (
+      <div className="space-y-5">
+        <Alert className="border-sky-400/20 bg-sky-500/10 text-slate-100">
+          <CircleAlert className="h-4 w-4" />
+          <AlertTitle>Chế độ mock local không hỗ trợ đổi mật khẩu</AlertTitle>
+          <AlertDescription className="text-slate-300">
+            Hãy đăng nhập bằng tài khoản demo {LOCAL_AUTH_MOCK_ACCOUNT.email} / {LOCAL_AUTH_MOCK_ACCOUNT.password} rồi quay lại màn đăng nhập khi cần thử luồng auth.
+          </AlertDescription>
+        </Alert>
+
+        <div className="flex items-center justify-end gap-4">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 text-sm font-medium text-sky-200 transition hover:text-sky-100"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Quay lại đăng nhập
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   const router = useRouter()
   const [recoveryState, setRecoveryState] = useState<RecoveryState>("checking")
   const [password, setPassword] = useState("")
@@ -49,21 +77,21 @@ export function ResetPasswordForm() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
       (event: AuthChangeEvent, session: Session | null) => {
-      if (!active) {
-        return
-      }
+        if (!active) {
+          return
+        }
 
-      if (
-        event === "INITIAL_SESSION" ||
-        event === "SIGNED_IN" ||
-        event === "PASSWORD_RECOVERY"
-      ) {
-        setRecoveryState(session ? "ready" : "invalid")
-      }
+        if (
+          event === "INITIAL_SESSION" ||
+          event === "SIGNED_IN" ||
+          event === "PASSWORD_RECOVERY"
+        ) {
+          setRecoveryState(session ? "ready" : "invalid")
+        }
 
-      if (event === "SIGNED_OUT") {
-        setRecoveryState("invalid")
-      }
+        if (event === "SIGNED_OUT") {
+          setRecoveryState("invalid")
+        }
       },
     )
 

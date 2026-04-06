@@ -1,6 +1,7 @@
 import "server-only"
 
 import { cache } from "react"
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
 import prisma from "@/lib/prisma"
@@ -10,6 +11,12 @@ import {
   sanitizeReturnToPath,
   type AppRole,
 } from "@/lib/auth/routing"
+import {
+  isLocalAuthMockEnabled,
+  LOCAL_AUTH_MOCK_SESSION_COOKIE,
+  readLocalAuthSessionFromCookieValue,
+  type LocalAuthSession,
+} from "@/lib/auth/mock-auth"
 import { createClient } from "@/lib/supabase/server"
 
 const VALID_ROLES = new Set<AppRole>(APP_ROLES)
@@ -40,7 +47,36 @@ function mapProfileRole(role: string): AppRole | null {
   return VALID_ROLES.has(role as AppRole) ? (role as AppRole) : null
 }
 
+function mapLocalAuthSessionToProfile(session: LocalAuthSession): AuthProfile {
+  return {
+    id: session.userId,
+    email: session.email,
+    fullName: session.fullName,
+    role: session.role,
+    isActive: session.isActive,
+    customerId: session.customerId,
+    portId: session.portId,
+  }
+}
+
 export const getCurrentAuthContext = cache(async (): Promise<AuthContext | null> => {
+  if (isLocalAuthMockEnabled()) {
+    const cookieStore = await cookies()
+    const session = readLocalAuthSessionFromCookieValue(
+      cookieStore.get(LOCAL_AUTH_MOCK_SESSION_COOKIE)?.value,
+    )
+
+    if (!session) {
+      return null
+    }
+
+    return {
+      userId: session.userId,
+      email: session.email,
+      profile: mapLocalAuthSessionToProfile(session),
+    }
+  }
+
   const supabase = await createClient()
   const { data, error } = await supabase.auth.getClaims()
 

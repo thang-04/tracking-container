@@ -10,15 +10,12 @@ export default async function ForgotPasswordPage() {
 
   return (
     <AuthShell
-      eyebrow="Password Recovery"
-      title="Khôi phục quyền truy cập mà không làm vỡ luồng vận hành."
-      description="Nếu email tồn tại trong hệ thống, chúng tôi sẽ gửi liên kết đặt lại mật khẩu tới đúng địa chỉ đã đăng ký."
+      eyebrow="Khôi phục truy cập"
+      title="Đặt lại mật khẩu"
+      description=""
+      compact
     >
-      <AuthCard
-        eyebrow="Quên mật khẩu"
-        title="Gửi liên kết đặt lại"
-        description="Nhập email đã được cấp quyền để nhận hướng dẫn khôi phục truy cập."
-      >
+      <AuthCard eyebrow="Quên mật khẩu" title="Gửi liên kết đặt lại" description="">
         <ForgotPasswordForm />
       </AuthCard>
     </AuthShell>

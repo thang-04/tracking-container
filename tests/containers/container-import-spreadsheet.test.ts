@@ -1,4 +1,4 @@
-import test from "node:test"
+﻿import test from "node:test"
 import assert from "node:assert/strict"
 
 import * as XLSX from "xlsx"
@@ -67,28 +67,24 @@ function buildDischargeWorkbookBuffer() {
   return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" })
 }
 
-test("parses discharge list workbook using exact source columns and batch selections", () => {
+test("parses discharge list workbook using exact source columns without batch selections", () => {
   const result = parseSpreadsheetContainerRows(
     "FINAL DISCHARGE LIST - CCNI ANGOL 611E (3).xlsx",
     buildDischargeWorkbookBuffer(),
-    {
-      customerCode: "CUST-ALPHA",
-      routeCode: "RT-HPC-HNI",
-    },
   )
 
   assert.deepEqual(result.errors, [])
   assert.equal(result.template, "excel-discharge-list")
   assert.equal(result.sheetName, "UnitFacilityVisit_20260316_1005")
-  assert.match(result.sourceSummary, /Excel discharge list/)
+  assert.match(result.sourceSummary, /Excel/)
   assert.equal(result.rows.length, 1)
 
   const row = result.rows[0]
 
   assert.equal(row?.data.containerNo, "MSKU0382146")
   assert.equal(row?.data.containerTypeCode, "40HC")
-  assert.equal(row?.data.customerCode, "CUST-ALPHA")
-  assert.equal(row?.data.routeCode, "RT-HPC-HNI")
+  assert.equal(row?.data.customerCode, null)
+  assert.equal(row?.data.routeCode, null)
   assert.equal(row?.data.shippingLineCode, "MAE")
   assert.equal(row?.data.grossWeightKg, "3940")
   assert.equal(row?.data.billNo, "CAG611E")
@@ -99,14 +95,17 @@ test("parses discharge list workbook using exact source columns and batch select
   assert.equal(row?.rawData["Unit Nbr"], "MSKU0382146")
   assert.equal(row?.rawData["Type ISO"], "45G0")
   assert.equal(row?.rawData["POD"], "VNHHP")
+  assert.equal(Object.hasOwn(row?.rawData ?? {}, "container_no"), false)
+  assert.equal(Object.hasOwn(row?.rawData ?? {}, "customer_code"), false)
+  assert.equal(Object.hasOwn(row?.rawData ?? {}, "route_code"), false)
 
   assert.match(result.persistedText, /container_no,container_type_code,customer_code,route_code/)
 
   const reparsed = parseCsvContainerRows(result.persistedText)
   assert.deepEqual(reparsed.errors, [])
   assert.equal(reparsed.rows[0]?.data.containerNo, "MSKU0382146")
-  assert.equal(reparsed.rows[0]?.data.customerCode, "CUST-ALPHA")
-  assert.equal(reparsed.rows[0]?.data.routeCode, "RT-HPC-HNI")
+  assert.equal(reparsed.rows[0]?.data.customerCode, null)
+  assert.equal(reparsed.rows[0]?.data.routeCode, null)
   assert.equal(reparsed.rows[0]?.data.currentPortCode, "PORT-HPC")
   assert.equal(reparsed.rows[0]?.data.statusHint, "at_seaport_yard")
 })
@@ -150,14 +149,10 @@ function buildSheet1SummaryWorkbookBuffer() {
   return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" })
 }
 
-test("parses Sheet1 summary workbook into canonical container rows", () => {
+test("parses Sheet1 summary workbook into canonical container rows without batch selections", () => {
   const result = parseSpreadsheetContainerRows(
     "FINAL DISCHARGE LIST - summary.xlsx",
     buildSheet1SummaryWorkbookBuffer(),
-    {
-      customerCode: "CUST-ALPHA",
-      routeCode: "RT-HPC-HNI",
-    },
   )
 
   assert.deepEqual(result.errors, [])
@@ -169,28 +164,25 @@ test("parses Sheet1 summary workbook into canonical container rows", () => {
 
   assert.equal(row?.data.containerNo, "MSKU0382146")
   assert.equal(row?.data.containerTypeCode, "40HC")
-  assert.equal(row?.data.customerCode, "CUST-ALPHA")
-  assert.equal(row?.data.routeCode, "RT-HPC-HNI")
+  assert.equal(row?.data.customerCode, null)
+  assert.equal(row?.data.routeCode, null)
   assert.equal(row?.data.eta, "2026-03-15")
   assert.equal(row?.data.billNo, "INV-9001")
   assert.equal(row?.data.shippingLineCode, null)
-  assert.match(row?.data.note ?? "", /Tau: CCNI ANGOL/)
-  assert.match(row?.data.note ?? "", /Chuyen: 611E/)
+  assert.match(row?.data.note ?? "", /CCNI ANGOL/)
+  assert.match(row?.data.note ?? "", /611E/)
+  assert.equal(row?.rawData["Container no"], "MSKU0382146")
+  assert.equal(Object.hasOwn(row?.rawData ?? {}, "container_no"), false)
 })
 
-test("requires customer and route selections for discharge list workbook imports", () => {
+test("does not require customer and route selections for discharge list workbook imports", () => {
   const result = parseSpreadsheetContainerRows(
     "FINAL DISCHARGE LIST - CCNI ANGOL 611E (3).xlsx",
     buildDischargeWorkbookBuffer(),
-    {
-      customerCode: "",
-      routeCode: "",
-    },
   )
 
-  assert.deepEqual(result.rows, [])
-  assert.deepEqual(result.errors, [
-    "Phai chon khach hang cho file Excel discharge list.",
-    "Phai chon tuyen cho file Excel discharge list.",
-  ])
+  assert.deepEqual(result.errors, [])
+  assert.equal(result.rows.length, 1)
+  assert.equal(result.rows[0]?.data.customerCode, null)
+  assert.equal(result.rows[0]?.data.routeCode, null)
 })

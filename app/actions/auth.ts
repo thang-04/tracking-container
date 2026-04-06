@@ -1,12 +1,20 @@
 "use server"
 
-import { headers } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 
 import type { AuthActionState } from "@/lib/auth/action-state"
 import prisma from "@/lib/prisma"
 import { APP_ROLES, sanitizeReturnToPath, type AppRole } from "@/lib/auth/routing"
+import {
+  clearLocalAuthSessionCookie,
+  createLocalAuthSession,
+  isLocalAuthMockCredentials,
+  isLocalAuthMockEnabled,
+  LOCAL_AUTH_MOCK_ACCOUNT,
+  setLocalAuthSessionCookie,
+} from "@/lib/auth/mock-auth"
 import { createClient } from "@/lib/supabase/server"
 
 const VALID_ROLES = new Set<AppRole>(APP_ROLES)
@@ -38,7 +46,7 @@ async function getRequestBaseUrl() {
     requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
 
   if (!host) {
-    throw new Error("Unable to determine request host for auth redirects")
+    throw new Error("Không thể xác định host yêu cầu để chuyển hướng xác thực.")
   }
 
   return `${protocol}://${host}`
@@ -59,6 +67,21 @@ export async function loginAction(
       status: "error",
       message: parsed.error.issues[0]?.message ?? "Dữ liệu đăng nhập không hợp lệ.",
     }
+  }
+
+  if (isLocalAuthMockEnabled()) {
+    if (!isLocalAuthMockCredentials(parsed.data.email, parsed.data.password)) {
+      return {
+        status: "error",
+        message: `Chỉ hỗ trợ tài khoản demo ${LOCAL_AUTH_MOCK_ACCOUNT.email} trong chế độ local mock.`,
+      }
+    }
+
+    const cookieStore = await cookies()
+    const session = createLocalAuthSession()
+
+    setLocalAuthSessionCookie(cookieStore, session)
+    redirect(sanitizeReturnToPath(parsed.data.returnTo, session.role))
   }
 
   const supabase = await createClient()
@@ -130,6 +153,14 @@ export async function forgotPasswordAction(
     }
   }
 
+  if (isLocalAuthMockEnabled()) {
+    return {
+      status: "success",
+      message:
+        `Chế độ mock local không gửi email đặt lại mật khẩu. Hãy dùng tài khoản demo ${LOCAL_AUTH_MOCK_ACCOUNT.email} trên màn đăng nhập.`,
+    }
+  }
+
   const supabase = await createClient()
   const baseUrl = await getRequestBaseUrl()
 
@@ -152,6 +183,12 @@ export async function forgotPasswordAction(
 }
 
 export async function signOutAction() {
+  if (isLocalAuthMockEnabled()) {
+    const cookieStore = await cookies()
+    clearLocalAuthSessionCookie(cookieStore)
+    redirect("/login")
+  }
+
   const supabase = await createClient()
   await supabase.auth.signOut()
   redirect("/login")

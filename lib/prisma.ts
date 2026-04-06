@@ -39,7 +39,7 @@ function getRequiredPrismaClient() {
   const prisma = getOrCreatePrismaClient()
 
   if (!prisma) {
-    throw new Error("DATABASE_URL is required to initialize PrismaClient")
+    throw new Error("Cần có DATABASE_URL để khởi tạo PrismaClient.")
   }
 
   return prisma

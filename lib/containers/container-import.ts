@@ -342,14 +342,14 @@ function parseFlexibleDateToIsoDate(value: string | null | undefined) {
 function buildSheet1RowNote(sourceRow: Record<string, string | null>) {
   const noteParts = [
     sourceRow["Container Status (Empty / Full)"]
-      ? `Trang thai cont: ${sourceRow["Container Status (Empty / Full)"]}`
+      ? `Trạng thái container: ${sourceRow["Container Status (Empty / Full)"]}`
       : null,
-    sourceRow["Container type"] ? `Loai hang: ${sourceRow["Container type"]}` : null,
-    sourceRow["Vessel Code"] ? `Vessel Code: ${sourceRow["Vessel Code"]}` : null,
-    sourceRow["Vessel Name"] ? `Tau: ${sourceRow["Vessel Name"]}` : null,
-    sourceRow["Voyage"] ? `Chuyen: ${sourceRow["Voyage"]}` : null,
+    sourceRow["Container type"] ? `Loại hàng: ${sourceRow["Container type"]}` : null,
+    sourceRow["Vessel Code"] ? `Mã tàu: ${sourceRow["Vessel Code"]}` : null,
+    sourceRow["Vessel Name"] ? `Tên tàu: ${sourceRow["Vessel Name"]}` : null,
+    sourceRow["Voyage"] ? `Chuyến: ${sourceRow["Voyage"]}` : null,
     sourceRow["Invoice Description"]
-      ? `Mo ta hoa don: ${sourceRow["Invoice Description"]}`
+      ? `Mô tả hóa đơn: ${sourceRow["Invoice Description"]}`
       : null,
   ].filter(Boolean)
 
@@ -362,96 +362,6 @@ function pickDischargeBillNo(sourceRow: Record<string, string | null>) {
     normalizeText(sourceRow["RDH"]) ??
     normalizeText(sourceRow["I/B Actual Visit"])
   )
-}
-
-function parseSheet1SummarySpreadsheetRows(
-  fileName: string,
-  sheet1: {
-    sheetName: string
-    headerRowIndex: number
-    matrix: string[][]
-  },
-  options: {
-    customerCode: string
-    routeCode: string
-  },
-): SpreadsheetContainerParseResult {
-  const customerCode = normalizeCode(options.customerCode)
-  const routeCode = normalizeCode(options.routeCode)
-  const headerRow = sheet1.matrix[sheet1.headerRowIndex] ?? []
-  const dataRows = sheet1.matrix.slice(sheet1.headerRowIndex + 1)
-  const parsedRows: ParsedContainerImportRow[] = []
-
-  for (const row of dataRows) {
-    const sourceRow = Object.fromEntries(
-      headerRow.map((header, index) => [header, normalizeText(row[index] ?? null)]),
-    ) as Record<string, string | null>
-
-    const containerNo = normalizeCode(sourceRow["Container no"])
-
-    if (!containerNo) {
-      continue
-    }
-
-    const sizeToken = normalizeText(sourceRow["Container Size"])
-    const sizeKey = sizeToken ? normalizeCode(sizeToken) : null
-    const mappedType = sizeKey ? (CONTAINER_SIZE_TO_TYPE.get(sizeKey) ?? null) : null
-    const containerTypeCode = mappedType ?? sizeKey
-    const etaIso = parseFlexibleDateToIsoDate(sourceRow["Departure Date"])
-    const invoiceNo = normalizeText(sourceRow["Invoice Number"])
-    const amountRaw = normalizeText(sourceRow["Invoice Amount"])
-    const note = buildSheet1RowNote(sourceRow)
-    const noteWithInvoice =
-      invoiceNo && amountRaw
-        ? [note, `Hoa don: ${invoiceNo} | So tien: ${amountRaw}`].filter(Boolean).join(" | ")
-        : note
-
-    const canonicalRawData: Record<string, string | null> = {
-      ...sourceRow,
-      container_no: containerNo,
-      container_type_code: containerTypeCode,
-      customer_code: customerCode,
-      route_code: routeCode,
-      shipping_line_code: null,
-      gross_weight_kg: null,
-      eta: etaIso,
-      bill_no: invoiceNo,
-      seal_no: null,
-      current_port_code: null,
-      current_yard_code: null,
-      current_block_code: null,
-      current_slot_code: null,
-      status_hint: null,
-      note: noteWithInvoice,
-    }
-
-    parsedRows.push({
-      rowNo: parsedRows.length + 1,
-      sourceType: "csv",
-      rawData: canonicalRawData,
-      data: normalizeContainerImportRow(canonicalRawData),
-    })
-  }
-
-  if (parsedRows.length === 0) {
-    return {
-      rows: [],
-      errors: ["Sheet tom tat khong co dong container hop le (can cot Container no)."],
-      persistedText: "",
-      template: "excel-sheet1-summary",
-      sheetName: sheet1.sheetName,
-      sourceSummary: `Excel tom tat | Sheet: ${sheet1.sheetName}`,
-    }
-  }
-
-  return {
-    rows: parsedRows,
-    errors: [],
-    persistedText: serializeRowsToCanonicalCsv(parsedRows),
-    template: "excel-sheet1-summary",
-    sheetName: sheet1.sheetName,
-    sourceSummary: `Excel tom tat | Sheet: ${sheet1.sheetName}`,
-  }
 }
 
 function buildDischargeRowNote(sourceRow: Record<string, string | null>) {
@@ -480,41 +390,93 @@ function buildDischargeRowNote(sourceRow: Record<string, string | null>) {
   return noteParts.join(" | ") || null
 }
 
-function parseDischargeSpreadsheetRows(
+function parseSheet1SummarySpreadsheetRows(
   fileName: string,
-  fileBytes: Uint8Array,
-  options: {
-    customerCode: string
-    routeCode: string
+  sheet1: {
+    sheetName: string
+    headerRowIndex: number
+    matrix: string[][]
   },
 ): SpreadsheetContainerParseResult {
-  const normalizedCustomerCode = normalizeCode(options.customerCode)
-  const normalizedRouteCode = normalizeCode(options.routeCode)
+  const headerRow = sheet1.matrix[sheet1.headerRowIndex] ?? []
+  const dataRows = sheet1.matrix.slice(sheet1.headerRowIndex + 1)
+  const parsedRows: ParsedContainerImportRow[] = []
 
-  if (!normalizedCustomerCode || !normalizedRouteCode) {
-    const errors: string[] = []
+  for (const row of dataRows) {
+    const sourceRow = Object.fromEntries(
+      headerRow.map((header, index) => [header, normalizeText(row[index] ?? null)]),
+    ) as Record<string, string | null>
 
-    if (!normalizedCustomerCode) {
-      errors.push("Phai chon khach hang cho file Excel discharge list.")
+    const containerNo = normalizeCode(sourceRow["Container no"])
+
+    if (!containerNo) {
+      continue
     }
 
-    if (!normalizedRouteCode) {
-      errors.push("Phai chon tuyen cho file Excel discharge list.")
+    const sizeToken = normalizeText(sourceRow["Container Size"])
+    const sizeKey = sizeToken ? normalizeCode(sizeToken) : null
+    const mappedType = sizeKey ? (CONTAINER_SIZE_TO_TYPE.get(sizeKey) ?? null) : null
+    const containerTypeCode = mappedType ?? sizeKey
+    const etaIso = parseFlexibleDateToIsoDate(sourceRow["Departure Date"])
+    const invoiceNo = normalizeText(sourceRow["Invoice Number"])
+    const amountRaw = normalizeText(sourceRow["Invoice Amount"])
+    const note = buildSheet1RowNote(sourceRow)
+    const noteWithInvoice =
+      invoiceNo && amountRaw
+        ? [note, 'H?a ??n: ' + invoiceNo + ' | S? ti?n: ' + amountRaw].filter(Boolean).join(" | ")
+        : note
+
+    const normalizedRow: Partial<Record<ContainerImportHeader, string | null>> = {
+      container_no: containerNo,
+      container_type_code: containerTypeCode,
+      customer_code: null,
+      route_code: null,
+      shipping_line_code: null,
+      gross_weight_kg: null,
+      eta: etaIso,
+      bill_no: invoiceNo,
+      seal_no: null,
+      current_port_code: null,
+      current_yard_code: null,
+      current_block_code: null,
+      current_slot_code: null,
+      status_hint: null,
+      note: noteWithInvoice,
     }
 
+    parsedRows.push({
+      rowNo: parsedRows.length + 1,
+      sourceType: "csv",
+      rawData: sourceRow,
+      data: normalizeContainerImportRow(normalizedRow),
+    })
+  }
+
+  if (parsedRows.length === 0) {
     return {
       rows: [],
-      errors,
+      errors: ["Sheet t?m t?t kh?ng c? d?ng container h?p l? (c?n c?t Container no)."],
       persistedText: "",
-      template: "excel-discharge-list",
-      sheetName: null,
-      sourceSummary: `Excel discharge list: ${fileName}`,
+      template: "excel-sheet1-summary",
+      sheetName: sheet1.sheetName,
+      sourceSummary: 'Excel t?m t?t | Sheet: ' + sheet1.sheetName,
     }
   }
 
-  const customerCode = normalizedCustomerCode
-  const routeCode = normalizedRouteCode
+  return {
+    rows: parsedRows,
+    errors: [],
+    persistedText: serializeRowsToCanonicalCsv(parsedRows),
+    template: "excel-sheet1-summary",
+    sheetName: sheet1.sheetName,
+    sourceSummary: 'Excel t?m t?t | Sheet: ' + sheet1.sheetName,
+  }
+}
 
+function parseDischargeSpreadsheetRows(
+  fileName: string,
+  fileBytes: Uint8Array,
+): SpreadsheetContainerParseResult {
   const workbook = XLSX.read(fileBytes, { type: "buffer" })
   const dischargeSheet = findDischargeSheet(workbook)
 
@@ -522,21 +484,18 @@ function parseDischargeSpreadsheetRows(
     const sheet1 = findSheet1SummarySheet(workbook)
 
     if (sheet1) {
-      return parseSheet1SummarySpreadsheetRows(fileName, sheet1, {
-        customerCode,
-        routeCode,
-      })
+      return parseSheet1SummarySpreadsheetRows(fileName, sheet1)
     }
 
     return {
       rows: [],
       errors: [
-        "Khong tim thay sheet hop le: can bang discharge (Unit Nbr, Type ISO, T-State, Position, Line Op, Weight (kg), POD) hoac bang tom tat (Container no, Container Size).",
+        "Kh?ng t?m th?y sheet h?p l?: c?n b?ng discharge (Unit Nbr, Type ISO, T-State, Position, Line Op, Weight (kg), POD) ho?c b?ng t?m t?t (Container no, Container Size).",
       ],
       persistedText: "",
       template: "excel-discharge-list",
       sheetName: null,
-      sourceSummary: `Excel: ${fileName}`,
+      sourceSummary: 'Excel: ' + fileName,
     }
   }
 
@@ -565,17 +524,20 @@ function parseDischargeSpreadsheetRows(
             : "yard")
         : null
 
-    const canonicalRawData: Record<string, string | null> = {
-      ...sourceRow,
+    const normalizedRow: Partial<Record<ContainerImportHeader, string | null>> = {
       container_no: normalizeCode(sourceRow["Unit Nbr"]),
       container_type_code: typeIso ? (ISO_TYPE_ALIASES.get(typeIso) ?? typeIso) : null,
-      customer_code: customerCode,
-      route_code: routeCode,
+      customer_code: null,
+      route_code: null,
       shipping_line_code: normalizeCode(sourceRow["Line Op"]),
       gross_weight_kg: normalizeText(sourceRow["Weight (kg)"]?.replace(/,/g, "").trim()),
-      seal_no: normalizeText(sourceRow["Seal Nbr1"]),
+      eta: null,
       bill_no: pickDischargeBillNo(sourceRow),
+      seal_no: normalizeText(sourceRow["Seal Nbr1"]),
       current_port_code: mappedPortCode,
+      current_yard_code: null,
+      current_block_code: null,
+      current_slot_code: null,
       status_hint: statusHint,
       note: buildDischargeRowNote(sourceRow),
     }
@@ -583,19 +545,19 @@ function parseDischargeSpreadsheetRows(
     parsedRows.push({
       rowNo: parsedRows.length + 1,
       sourceType: "csv",
-      rawData: canonicalRawData,
-      data: normalizeContainerImportRow(canonicalRawData),
+      rawData: sourceRow,
+      data: normalizeContainerImportRow(normalizedRow),
     })
   }
 
   if (parsedRows.length === 0) {
     return {
       rows: [],
-      errors: ["Sheet discharge list khong co dong du lieu hop le."],
+      errors: ["Sheet discharge list kh?ng c? d?ng d? li?u h?p l?."],
       persistedText: "",
       template: "excel-discharge-list",
       sheetName: dischargeSheet.sheetName,
-      sourceSummary: `Excel discharge list | Sheet: ${dischargeSheet.sheetName}`,
+      sourceSummary: 'Excel danh s?ch d? h?ng | Sheet: ' + dischargeSheet.sheetName,
     }
   }
 
@@ -605,17 +567,13 @@ function parseDischargeSpreadsheetRows(
     persistedText: serializeRowsToCanonicalCsv(parsedRows),
     template: "excel-discharge-list",
     sheetName: dischargeSheet.sheetName,
-    sourceSummary: `Excel discharge list | Sheet: ${dischargeSheet.sheetName}`,
+    sourceSummary: 'Excel danh s?ch d? h?ng | Sheet: ' + dischargeSheet.sheetName,
   }
 }
 
 export function parseSpreadsheetContainerRows(
   fileName: string,
   source: string | Uint8Array,
-  options: {
-    customerCode?: string | null
-    routeCode?: string | null
-  } = {},
 ): SpreadsheetContainerParseResult {
   if (typeof source === "string") {
     const parsed = parseCsvContainerRows(source)
@@ -626,14 +584,11 @@ export function parseSpreadsheetContainerRows(
       persistedText: source,
       template: "csv",
       sheetName: null,
-      sourceSummary: `CSV template: ${fileName}`,
+      sourceSummary: `CSV mẫu: ${fileName}`,
     }
   }
 
-  return parseDischargeSpreadsheetRows(fileName, source, {
-    customerCode: options.customerCode ?? "",
-    routeCode: options.routeCode ?? "",
-  })
+  return parseDischargeSpreadsheetRows(fileName, source)
 }
 
 export function parseCsvContainerRows(text: string) {
@@ -641,7 +596,7 @@ export function parseCsvContainerRows(text: string) {
   const matrix = parseCsvMatrix(text)
 
   if (matrix.length === 0) {
-    result.errors.push("CSV khong co du lieu.")
+    result.errors.push("CSV không có dữ liệu.")
     return result
   }
 
@@ -653,7 +608,7 @@ export function parseCsvContainerRows(text: string) {
   )
 
   if (missingHeaders.length > 0) {
-    result.errors.push(`CSV thieu cot bat buoc: ${missingHeaders.join(", ")}`)
+    result.errors.push(`CSV thiếu cột bắt buộc: ${missingHeaders.join(", ")}`)
     return result
   }
 
@@ -663,7 +618,7 @@ export function parseCsvContainerRows(text: string) {
   )
 
   if (unknownHeaders.length > 0) {
-    result.errors.push(`CSV co cot khong duoc ho tro: ${unknownHeaders.join(", ")}`)
+    result.errors.push(`CSV có cột không được hỗ trợ: ${unknownHeaders.join(", ")}`)
     return result
   }
 
@@ -817,7 +772,7 @@ export function parseEdiContainerRows(text: string) {
   flushCurrentRow()
 
   if (result.rows.length === 0) {
-    result.errors.push("EDI khong co record hop le.")
+    result.errors.push("EDI không có record hợp lệ.")
   }
 
   return result
@@ -875,6 +830,8 @@ function resolveContainerImportRow(
     ? customersByCode.get(row.data.customerCode)
     : null
   const route = row.data.routeCode ? routesByCode.get(row.data.routeCode) : null
+  const requireCustomerCode = context.requireCustomerCode ?? false
+  const requireRouteCode = context.requireRouteCode ?? false
   const shippingLine = row.data.shippingLineCode
     ? shippingLinesByCode.get(row.data.shippingLineCode)
     : null
@@ -907,47 +864,51 @@ function resolveContainerImportRow(
       : null
 
   if (!containerNo) {
-    errors.push("Container_no la bat buoc.")
+    errors.push("Container_no là bắt buộc.")
   } else {
     if (duplicateContainerNos.has(containerNo)) {
-      errors.push("Container_no bi trung lap trong file.")
+      errors.push("Container_no bị trùng lặp trong file.")
     }
 
     if (existingContainerNos.has(containerNo)) {
-      errors.push("Container_no da ton tai trong he thong.")
+      errors.push("Container_no đã tồn tại trong hệ thống.")
     }
   }
 
   if (!row.data.containerTypeCode) {
-    errors.push("Container_type_code la bat buoc.")
+    errors.push("Container_type_code là bắt buộc.")
   } else if (!containerType || !containerType.isActive) {
-    errors.push("Container_type_code khong hop le.")
+    errors.push("Container_type_code không hợp lệ.")
   }
 
-  if (!row.data.customerCode) {
-    errors.push("Customer_code la bat buoc.")
-  } else if (!customer || !customer.isActive) {
-    errors.push("Customer_code khong hop le.")
+  if (row.data.customerCode) {
+    if (!customer || !customer.isActive) {
+      errors.push("Customer_code không hợp lệ.")
+    }
+  } else if (requireCustomerCode) {
+    errors.push("Customer_code là bắt buộc.")
   }
 
-  if (!row.data.routeCode) {
-    errors.push("Route_code la bat buoc.")
-  } else if (!route || !route.isActive) {
-    errors.push("Route_code khong hop le.")
+  if (row.data.routeCode) {
+    if (!route || !route.isActive) {
+      errors.push("Route_code không hợp lệ.")
+    }
+  } else if (requireRouteCode) {
+    errors.push("Route_code là bắt buộc.")
   }
 
   if (row.data.shippingLineCode && (!shippingLine || !shippingLine.isActive)) {
-    errors.push("Shipping_line_code khong hop le.")
+    errors.push("Shipping_line_code không hợp lệ.")
   }
 
   const parsedWeight = parseOptionalPositiveNumber(row.data.grossWeightKg)
   if (row.data.grossWeightKg && !parsedWeight) {
-    errors.push("Gross_weight_kg phai la so duong.")
+    errors.push("Gross_weight_kg phải là số dương.")
   }
 
   const parsedEta = parseOptionalDate(row.data.eta)
   if (row.data.eta && !parsedEta) {
-    errors.push("Eta khong hop le.")
+    errors.push("ETA không hợp lệ.")
   }
 
   const hasAnyYardLocation =
@@ -955,37 +916,37 @@ function resolveContainerImportRow(
 
   if (hasAnyYardLocation) {
     if (!row.data.currentYardCode || !row.data.currentBlockCode || !row.data.currentSlotCode) {
-      errors.push("Phai cung cap du yard, block, slot.")
+      errors.push("Phải cung cấp đủ yard, block, slot.")
     }
   }
 
   if (row.data.currentPortCode && (!explicitPort || !explicitPort.isActive)) {
-    errors.push("Current_port_code khong hop le.")
+    errors.push("Current_port_code không hợp lệ.")
   }
 
   if (row.data.currentYardCode && matchingYards.length > 1) {
-    errors.push("Current_yard_code khong xac dinh duoc trong port hien tai.")
+    errors.push("Current_yard_code không xác định được trong cảng hiện tại.")
   }
 
   if (row.data.currentYardCode && (!yard || !yard.isActive)) {
-    errors.push("Current_yard_code khong hop le.")
+    errors.push("Current_yard_code không hợp lệ.")
   }
 
   if (row.data.currentBlockCode) {
     if (!block || !block.isActive) {
-      errors.push("Current_block_code khong hop le.")
+      errors.push("Current_block_code không hợp lệ.")
     } else if (yard && block.yardId !== yard.id) {
-      errors.push("Block khong thuoc yard da chon.")
+      errors.push("Block không thuộc yard đã chọn.")
     }
   }
 
   if (row.data.currentSlotCode) {
     if (!slot || !slot.isActive) {
-      errors.push("Current_slot_code khong hop le.")
+      errors.push("Current_slot_code không hợp lệ.")
     } else if (block && slot.blockId !== block.id) {
-      errors.push("Slot khong thuoc block da chon.")
+      errors.push("Slot không thuộc block đã chọn.")
     } else if (occupiedSlotIds.has(slot.id)) {
-      errors.push("Slot dang co container khac chiem.")
+      errors.push("Slot đang có container khác chiếm.")
     }
   }
 
@@ -996,21 +957,21 @@ function resolveContainerImportRow(
     const yardPort = context.ports.find((port) => port.id === yard.portId) ?? null
 
     if (!yardPort || !yardPort.isActive) {
-      errors.push("Port cua yard khong hop le.")
+      errors.push("Port của yard không hợp lệ.")
     } else {
       resolvedPortId = yardPort.id
       resolvedStatus =
         yardPort.portType === "seaport" ? "at_seaport_yard" : "at_dryport_yard"
 
       if (explicitPort && explicitPort.id !== yardPort.id) {
-        errors.push("Current_port_code phai khop voi port cua yard.")
+        errors.push("Current_port_code phải khớp với port của yard.")
       }
     }
   } else if (row.data.statusHint) {
     switch (row.data.statusHint) {
       case "yard":
         if (!explicitPort || !explicitPort.isActive) {
-          errors.push("Status_hint `yard` can current_port_code hop le.")
+          errors.push("Status_hint `yard` cần current_port_code hợp lệ.")
         } else {
           resolvedStatus =
             explicitPort.portType === "seaport" ? "at_seaport_yard" : "at_dryport_yard"
@@ -1026,18 +987,18 @@ function resolveContainerImportRow(
         resolvedStatus = row.data.statusHint
         break
       default:
-        errors.push("Status_hint khong hop le.")
+        errors.push("Status_hint không hợp lệ.")
         break
     }
   }
 
   const resolved =
-    errors.length === 0 && containerNo && containerType && customer && route
+    errors.length === 0 && containerNo && containerType
       ? {
           containerNo,
           containerTypeId: containerType.id,
-          customerId: customer.id,
-          routeId: route.id,
+          customerId: customer?.id ?? null,
+          routeId: route?.id ?? null,
           shippingLineId: shippingLine?.id ?? null,
           currentStatus: resolvedStatus,
           customsStatus: "pending" as const,

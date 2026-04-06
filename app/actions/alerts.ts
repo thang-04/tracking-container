@@ -8,7 +8,7 @@ import { getCurrentAuthContext } from "@/lib/auth/server"
 function assertInternalUser() {
   return getCurrentAuthContext().then((auth) => {
     if (!auth?.profile || !auth.profile.isActive || auth.profile.role === "customer") {
-      throw new Error("Unauthorized")
+      throw new Error("Không có quyền truy cập.")
     }
 
     return auth
