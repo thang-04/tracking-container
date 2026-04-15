@@ -22,6 +22,12 @@ const containers: ContainerDirectoryItem[] = [
     shippingLineLabel: "Maersk",
     customerLabel: "ABC",
     routeLabel: "HP-HN",
+    categoryLabel: null,
+    vStateLabel: null,
+    tStateLabel: null,
+    customsStatusLabel: null,
+    billNo: null,
+    sealNo: null,
   },
   {
     id: "c2",
@@ -36,6 +42,12 @@ const containers: ContainerDirectoryItem[] = [
     shippingLineLabel: null,
     customerLabel: null,
     routeLabel: "HP-HN",
+    categoryLabel: null,
+    vStateLabel: null,
+    tStateLabel: null,
+    customsStatusLabel: null,
+    billNo: null,
+    sealNo: null,
   },
   {
     id: "c3",
@@ -50,6 +62,12 @@ const containers: ContainerDirectoryItem[] = [
     shippingLineLabel: "OOCL",
     customerLabel: "XYZ",
     routeLabel: null,
+    categoryLabel: null,
+    vStateLabel: null,
+    tStateLabel: null,
+    customsStatusLabel: null,
+    billNo: null,
+    sealNo: null,
   },
 ]
 

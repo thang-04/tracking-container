@@ -31,6 +31,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import type { ContainerFormOptions } from "@/lib/containers/container-master-data"
 import {
   buildContainerDirectoryStats,
@@ -75,6 +82,127 @@ function StatCard(props: {
   )
 }
 
+function getCustomsMeta(label: string | null) {
+  switch (label) {
+    case "Đã thông quan":
+      return {
+        label,
+        className: "bg-success/10 text-success",
+      }
+    case "Đang bị giữ":
+      return {
+        label,
+        className: "bg-destructive/10 text-destructive",
+      }
+    case "Chờ xử lý":
+    default:
+      return {
+        label: label ?? "Chưa cập nhật",
+        className: "bg-warning/10 text-warning",
+      }
+  }
+}
+
+function DetailField(props: {
+  label: string
+  value: string
+  mono?: boolean
+  muted?: boolean
+}) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-muted/15 p-3">
+      <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+        {props.label}
+      </p>
+      <p
+        className={cn(
+          "mt-1 text-sm font-medium text-foreground",
+          props.mono && "font-mono",
+          props.muted && "font-normal text-muted-foreground",
+        )}
+      >
+        {props.value}
+      </p>
+    </div>
+  )
+}
+
+function ContainerDetailSheet(props: {
+  container: ContainerDirectoryItem | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  if (!props.container) {
+    return null
+  }
+
+  const { container } = props
+  const statusMeta = getContainerStatusMeta(container.status)
+  const customsMeta = getCustomsMeta(container.customsStatusLabel)
+
+  return (
+    <Sheet open={props.open} onOpenChange={props.onOpenChange}>
+      <SheetContent side="right" className="w-full gap-0 sm:max-w-xl">
+        <SheetHeader className="border-b border-border/60 pb-4 pr-10">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className={cn("border-transparent", statusMeta.className)}>
+              {statusMeta.label}
+            </Badge>
+            <Badge className={cn("border-transparent", customsMeta.className)}>
+              {customsMeta.label}
+            </Badge>
+            {container.categoryLabel ? <Badge variant="outline">{container.categoryLabel}</Badge> : null}
+          </div>
+          <SheetTitle className="mt-3 font-mono text-xl">{container.containerNo}</SheetTitle>
+          <SheetDescription>
+            {container.locationLabel} · {container.destinationLabel}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-6 overflow-y-auto px-4 pb-6 pt-4">
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Tổng quan vận hành</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <DetailField label="Vị trí hiện tại" value={container.locationLabel} />
+              <DetailField label="Đích đến" value={container.destinationLabel} />
+              <DetailField label="ETA" value={container.etaLabel} />
+              <DetailField label="Trọng lượng" value={container.weightLabel} mono />
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Nhận diện</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <DetailField label="Loại container" value={container.typeLabel} />
+              <DetailField label="Category" value={container.categoryLabel ?? "Chưa xác định"} />
+              <DetailField label="T-State" value={container.tStateLabel ?? "Chưa cập nhật"} />
+              <DetailField label="V-State" value={container.vStateLabel ?? "Chưa cập nhật"} />
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Hành trình & đối tác</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <DetailField label="Hãng tàu" value={container.shippingLineLabel ?? "Chưa gán"} />
+              <DetailField label="Khách hàng" value={container.customerLabel ?? "Chưa gán"} />
+              <DetailField label="Tuyến" value={container.routeLabel ?? "Chưa gán"} />
+              <DetailField label="Trạng thái hải quan" value={container.customsStatusLabel ?? "Chưa cập nhật"} />
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Chứng từ</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <DetailField label="Bill No" value={container.billNo ?? "Chưa có"} mono />
+              <DetailField label="Seal No" value={container.sealNo ?? "Chưa có"} mono />
+            </div>
+          </section>
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
 export function ContainersPageClient({
   containers,
   formOptions,
@@ -87,6 +215,7 @@ export function ContainersPageClient({
     useState<ContainerDirectoryFilterStatus>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
+  const [selectedContainer, setSelectedContainer] = useState<ContainerDirectoryItem | null>(null)
 
   const stats = useMemo(() => buildContainerDirectoryStats(containers), [containers])
   const filteredContainers = useMemo(
@@ -102,6 +231,16 @@ export function ContainersPageClient({
   useEffect(() => {
     setCurrentPage(1)
   }, [searchTerm, statusFilter])
+
+  useEffect(() => {
+    if (!selectedContainer) {
+      return
+    }
+
+    if (!filteredContainers.some((item) => item.id === selectedContainer.id)) {
+      setSelectedContainer(null)
+    }
+  }, [filteredContainers, selectedContainer])
 
   const totalPages = Math.max(1, Math.ceil(filteredContainers.length / pageSize))
   // Clamp page if data shrinks (e.g. after filter)
@@ -209,7 +348,15 @@ export function ContainersPageClient({
                         const statusMeta = getContainerStatusMeta(container.status)
 
                         return (
-                          <TableRow key={container.id} className="hover:bg-muted/30">
+                          <TableRow
+                            key={container.id}
+                            className={cn(
+                              "cursor-pointer hover:bg-muted/30",
+                              selectedContainer?.id === container.id && "bg-muted/30",
+                            )}
+                            onClick={() => setSelectedContainer(container)}
+                            aria-selected={selectedContainer?.id === container.id}
+                          >
                             <TableCell>
                               <div className="space-y-1">
                                 <p className="font-mono font-medium">{container.containerNo}</p>
@@ -339,6 +486,16 @@ export function ContainersPageClient({
           </CardContent>
         </Card>
       </div>
+
+      <ContainerDetailSheet
+        container={selectedContainer}
+        open={!!selectedContainer}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedContainer(null)
+          }
+        }}
+      />
     </DashboardLayout>
   )
 }

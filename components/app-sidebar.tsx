@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   ChevronsUpDown,
   FileText,
+  Grid3X3,
   LayoutDashboard,
   LogOut,
   MapPin,
@@ -29,22 +30,32 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+} from "@/components/ui/sidebar"
+import {
   isLocalAuthMockEnabled,
   readLocalAuthSessionFromCookieHeader,
 } from "@/lib/auth/mock-auth"
 import { createClient } from "@/lib/supabase/client"
-import { cn } from "@/lib/utils"
 
 const navigation = [
   { name: "Bảng điều khiển", href: "/", icon: LayoutDashboard },
   { name: "Container", href: "/containers", icon: Package },
+  { name: "Quản lý bãi", href: "/yard", icon: Grid3X3 },
   { name: "Vận chuyển", href: "/transport", icon: Truck },
   { name: "Bản đồ", href: "/map", icon: MapPin },
   { name: "Cảnh báo", href: "/alerts", icon: AlertTriangle },
   { name: "Hoạt động hải quan", href: "/customs", icon: FileText },
   { name: "Người dùng", href: "/users", icon: Users },
   { name: "Cài đặt", href: "/settings", icon: Settings },
-]
+] as const
 
 function formatDisplayName(email: string | null) {
   if (!email) {
@@ -73,6 +84,14 @@ function getInitials(value: string) {
     .join("")
 
   return initials || "TK"
+}
+
+function isActiveRoute(pathname: string, href: string) {
+  if (href === "/") {
+    return pathname === href
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`)
 }
 
 export function AppSidebar() {
@@ -137,43 +156,54 @@ export function AppSidebar() {
   const accountInitials = getInitials(accountName)
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar">
-      <div className="border-b border-sidebar-border px-4 py-4">
-        <Link href="/" className="block">
-          <ProjectLogo className="h-24 w-full" priority />
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+      <SidebarHeader className="border-b border-sidebar-border px-3 py-4 group-data-[collapsible=icon]:p-2">
+        <Link
+          href="/"
+          className="block rounded-lg transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
+        >
+          <div className="w-full group-data-[collapsible=icon]:hidden">
+            <ProjectLogo className="h-24 w-full" priority />
+          </div>
+          <div className="hidden h-11 w-11 items-center justify-center rounded-lg bg-sidebar-accent text-sm font-semibold text-sidebar-primary group-data-[collapsible=icon]:flex">
+            TC
+          </div>
         </Link>
-      </div>
+      </SidebarHeader>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {navigation.map((item) => {
-          const isActive = pathname === item.href
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-              )}
-            >
-              <item.icon className="h-5 w-5 flex-shrink-0" />
-              {item.name}
-            </Link>
-          )
-        })}
-      </nav>
+      <SidebarContent className="px-2 py-3">
+        <SidebarMenu>
+          {navigation.map((item) => {
+            const isActive = isActiveRoute(pathname, item.href)
 
-      <div className="border-t border-sidebar-border p-4">
+            return (
+              <SidebarMenuItem key={item.name}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive}
+                  tooltip={item.name}
+                  className="h-10 rounded-lg px-3"
+                >
+                  <Link href={item.href}>
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.name}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )
+          })}
+        </SidebarMenu>
+      </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border p-2">
         <form id="sidebar-signout-form" action={signOutAction} />
 
         {!mounted ? (
-          <div className="flex w-full items-center gap-3 rounded-lg bg-sidebar-accent/50 px-3 py-2 opacity-50">
-            <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
-            <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-2 rounded-lg bg-sidebar-accent/50 px-2 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+            <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+            <div className="flex-1 space-y-2 group-data-[collapsible=icon]:hidden">
               <div className="h-3 w-20 rounded bg-muted animate-pulse" />
-              <div className="h-2 w-32 rounded bg-muted animate-pulse" />
+              <div className="h-2 w-28 rounded bg-muted animate-pulse" />
             </div>
           </div>
         ) : (
@@ -181,14 +211,14 @@ export function AppSidebar() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex w-full items-center gap-3 rounded-lg bg-sidebar-accent px-3 py-2 text-left transition-colors hover:bg-sidebar-accent/80"
+                className="flex w-full items-center gap-2 rounded-lg bg-sidebar-accent px-2 py-2 text-left transition-colors hover:bg-sidebar-accent/80 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
               >
-                <Avatar className="h-9 w-9">
+                <Avatar className="h-8 w-8 shrink-0">
                   <AvatarFallback className="bg-primary text-xs font-medium text-primary-foreground">
                     {accountInitials}
                   </AvatarFallback>
                 </Avatar>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
                   <span className="block truncate text-sm font-medium text-sidebar-foreground">
                     {accountName}
                   </span>
@@ -196,7 +226,7 @@ export function AppSidebar() {
                     {account.email ?? "Mở menu tài khoản"}
                   </span>
                 </div>
-                <ChevronsUpDown className="h-4 w-4 text-sidebar-foreground/60" />
+                <ChevronsUpDown className="h-4 w-4 text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="end" className="w-64">
@@ -216,7 +246,9 @@ export function AppSidebar() {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-      </div>
-    </aside>
+      </SidebarFooter>
+
+      <SidebarRail />
+    </Sidebar>
   )
 }

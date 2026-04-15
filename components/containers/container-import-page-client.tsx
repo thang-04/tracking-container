@@ -2,13 +2,12 @@
 
 import Link from "next/link"
 import { useActionState, useEffect, useMemo, useState } from "react"
-import { ArrowLeft, CircleAlert, LoaderCircle, Search } from "lucide-react"
+import { ArrowLeft, CircleAlert, LoaderCircle, MapPin, Search, ShieldAlert, Thermometer, Waypoints } from "lucide-react"
 import { useFormStatus } from "react-dom"
 
 import { importContainerImportPreviewBatchAction } from "@/app/actions/containers"
 import {
   initialContainerImportSubmitActionState,
-  type ContainerImportSubmitActionState,
 } from "@/lib/containers/container-action-state"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -16,6 +15,13 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Table,
@@ -32,7 +38,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import type { getContainerImportPreviewBatch } from "@/lib/containers/container-persistence"
 import { cn } from "@/lib/utils"
@@ -145,6 +150,55 @@ function getStatusHintLabel(statusHint: string | null) {
     default:
       return "Tự suy diễn"
   }
+}
+
+function getPreviewRowStateMeta(row: PreviewRow) {
+  if (!row.isValid) {
+    return {
+      label: "Có lỗi",
+      summary: `${row.errors.length} lỗi cần xử lý trước khi nhập`,
+      className: "bg-destructive/10 text-destructive",
+      badgeVariant: "destructive" as const,
+    }
+  }
+
+  if (row.warnings.length > 0) {
+    return {
+      label: "Cần rà soát",
+      summary: `${row.warnings.length} cảnh báo, có thể phát sinh tạo mới master data`,
+      className: "bg-warning/10 text-warning",
+      badgeVariant: "outline" as const,
+    }
+  }
+
+  return {
+    label: "Hợp lệ",
+    summary: "Có thể nhập ngay nếu các dòng khác cũng đạt điều kiện",
+    className: "bg-success/10 text-success",
+    badgeVariant: "secondary" as const,
+  }
+}
+
+function getMissingMasterData(row: PreviewRow) {
+  const groups: Array<{ label: string; value: string }> = []
+
+  if (row.warnings.some((warning) => warning.includes("loại container")) && row.containerTypeCode) {
+    groups.push({ label: "Loại container", value: row.containerTypeCode })
+  }
+
+  if (row.warnings.some((warning) => warning.includes("cảng mới")) && row.currentPortCode) {
+    groups.push({ label: "Cảng", value: row.currentPortCode })
+  }
+
+  if (row.warnings.some((warning) => warning.includes("hãng tàu")) && row.shippingLineCode) {
+    groups.push({ label: "Hãng tàu", value: row.shippingLineCode })
+  }
+
+  if (row.warnings.some((warning) => warning.includes("chủ hàng")) && row.customerCode) {
+    groups.push({ label: "Chủ hàng", value: row.customerCode })
+  }
+
+  return groups
 }
 
 
@@ -334,16 +388,199 @@ function PreviewStatCard(props: {
   )
 }
 
+function PreviewDetailField(props: {
+  label: string
+  value: string
+  tone?: "default" | "strong"
+}) {
+  return (
+    <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+      <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+        {props.label}
+      </p>
+      <p
+        className={cn(
+          "mt-1 text-sm text-foreground",
+          props.tone === "strong" ? "font-semibold" : "font-medium",
+        )}
+      >
+        {props.value}
+      </p>
+    </div>
+  )
+}
+
+function PreviewRowDetailSheet({
+  row,
+  open,
+  onOpenChange,
+}: {
+  row: PreviewRow | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  if (!row) {
+    return null
+  }
+
+  const stateMeta = getPreviewRowStateMeta(row)
+  const missingMasterData = getMissingMasterData(row)
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full gap-0 sm:max-w-xl">
+        <SheetHeader className="border-b border-border/60 pb-4 pr-10">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline">Dòng {row.rowNo}</Badge>
+            <Badge
+              variant={stateMeta.badgeVariant}
+              className={cn(
+                stateMeta.badgeVariant === "outline" && "border-warning/30 bg-warning/10 text-warning",
+              )}
+            >
+              {stateMeta.label}
+            </Badge>
+            {row.statusHint ? <Badge variant="secondary">{getStatusHintLabel(row.statusHint)}</Badge> : null}
+          </div>
+          <SheetTitle className="mt-3 font-mono text-xl">{row.containerNo || "Chưa có mã container"}</SheetTitle>
+          <SheetDescription>{stateMeta.summary}</SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4">
+          {(row.errors.length > 0 || row.warnings.length > 0) && (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <ShieldAlert className="size-4 text-warning" />
+                Kiểm tra dữ liệu
+              </div>
+
+              {row.errors.length > 0 ? (
+                <Alert variant="destructive" className="border-destructive/30 bg-destructive/10">
+                  <CircleAlert className="size-4" />
+                  <AlertTitle>Phát hiện lỗi validation</AlertTitle>
+                  <AlertDescription>
+                    <div className="space-y-1">
+                      {row.errors.map((error) => (
+                        <p key={error}>{error}</p>
+                      ))}
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
+              {row.warnings.length > 0 ? (
+                <Alert className="border-warning/30 bg-warning/10 text-foreground [&>svg]:text-warning">
+                  <CircleAlert className="size-4" />
+                  <AlertTitle>Cần rà soát trước khi nhập</AlertTitle>
+                  <AlertDescription>
+                    <div className="space-y-1">
+                      {row.warnings.map((warning) => (
+                        <p key={warning}>{warning}</p>
+                      ))}
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
+              {missingMasterData.length > 0 ? (
+                <div className="rounded-xl border border-border/60 bg-background p-3">
+                  <p className="text-sm font-medium text-foreground">Master data có thể được tạo mới</p>
+                  <div className="mt-3 grid gap-2 md:grid-cols-2">
+                    {missingMasterData.map((item) => (
+                      <PreviewDetailField
+                        key={`${item.label}-${item.value}`}
+                        label={item.label}
+                        value={item.value}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </section>
+          )}
+
+          <section className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Waypoints className="size-4 text-primary" />
+              Nhận diện
+            </div>
+            <div className="grid gap-2 md:grid-cols-2">
+              <PreviewDetailField label="Loại container" value={formatText(row.containerTypeCode)} tone="strong" />
+              <PreviewDetailField label="Category" value={formatText(row.category)} />
+              <PreviewDetailField label="V-State" value={formatText(row.vState)} />
+              <PreviewDetailField label="T-State" value={formatText(row.tState)} />
+              <PreviewDetailField label="Seal 1" value={formatText(row.sealNo)} />
+              <PreviewDetailField label="Seal 2" value={formatText(row.sealNo2)} />
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Waypoints className="size-4 text-success" />
+              Hành trình
+            </div>
+            <div className="grid gap-2 md:grid-cols-2">
+              <PreviewDetailField label="Hãng tàu" value={formatText(row.shippingLineCode)} />
+              <PreviewDetailField label="Bill No" value={formatText(row.billNo)} />
+              <PreviewDetailField label="Outbound visit" value={formatText(row.obActualVisit)} />
+              <PreviewDetailField label="ETA" value={formatDateTime(row.eta)} />
+              <PreviewDetailField label="Status hint" value={getStatusHintLabel(row.statusHint)} />
+              <PreviewDetailField label="Cảng đích / POD" value={formatText(row.currentPortCode)} />
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <MapPin className="size-4 text-primary" />
+              Vị trí
+            </div>
+            <div className="grid gap-2 md:grid-cols-2">
+              <PreviewDetailField label="Port" value={formatText(row.currentPortCode)} />
+              <PreviewDetailField label="Yard" value={formatText(row.currentYardCode)} />
+              <PreviewDetailField label="Block" value={formatText(row.currentBlockCode)} />
+              <PreviewDetailField label="Slot" value={formatText(row.currentSlotCode)} tone="strong" />
+              <PreviewDetailField label="Stow" value={formatText(row.stow)} />
+              <PreviewDetailField label="Group" value={formatText(row.grp)} />
+              <PreviewDetailField label="Tóm tắt vị trí" value={formatLocation(row)} tone="strong" />
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Thermometer className="size-4 text-warning" />
+              Đặc biệt
+            </div>
+            <div className="grid gap-2 md:grid-cols-2">
+              <PreviewDetailField label="Reefer / Power" value={row.reqsPower ? "Có yêu cầu nguồn" : "Không"} />
+              <PreviewDetailField label="Nhiệt độ yêu cầu" value={row.tempRequiredC ? `${row.tempRequiredC}°C` : "Chưa có"} />
+              <PreviewDetailField label="RLH / RDH" value={`${formatText(row.rlh)} / ${formatText(row.rdh)}`} />
+              <PreviewDetailField label="OOG" value={row.isOog ? "Có" : "Không"} />
+              <PreviewDetailField label="IMDG" value={formatText(row.imdg)} />
+              <PreviewDetailField label="Hazardous" value={row.hazardous ? "Có" : "Không"} />
+              <PreviewDetailField label="Freight kind" value={formatText(row.frghtKind)} />
+              <PreviewDetailField label="Ghi chú" value={formatText(row.note)} />
+            </div>
+          </section>
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
 function PreviewRowTable({
   rows,
   totalRows,
   validRows,
   invalidRows,
+  selectedRowKey,
+  onSelectRow,
 }: {
   rows: PreviewRow[]
   totalRows: number
   validRows: number
   invalidRows: number
+  selectedRowKey: string | null
+  onSelectRow: (row: PreviewRow) => void
 }) {
   const [searchTerm, setSearchTerm] = useState("")
   const [rowFilter, setRowFilter] = useState<RowFilter>("all")
@@ -462,7 +699,13 @@ function PreviewRowTable({
                 {paginatedRows.map((row) => (
                   <TableRow
                     key={`${row.rowNo}-${row.containerNo ?? "unknown"}`}
-                    className={cn(!row.isValid && "bg-destructive/5")}
+                    className={cn(
+                      "cursor-pointer hover:bg-muted/35",
+                      !row.isValid && "bg-destructive/5",
+                      selectedRowKey === `${row.rowNo}-${row.containerNo ?? "unknown"}` &&
+                        "bg-primary/8 ring-1 ring-primary/30",
+                    )}
+                    onClick={() => onSelectRow(row)}
                   >
                     <TableCell className="align-top whitespace-normal font-medium text-center">
                       {row.rowNo}
@@ -658,6 +901,7 @@ export function ContainerImportPageClient({
   rowsJson: string
 }) {
   const rows = useMemo(() => JSON.parse(rowsJson) as PreviewRow[], [rowsJson])
+  const [selectedRow, setSelectedRow] = useState<PreviewRow | null>(null)
   const sourceModeLabel = getSourceModeLabel(batch.sourceMode)
   const batchStatusMeta = getBatchStatusMeta(batch.status)
   const canImport =
@@ -739,6 +983,20 @@ export function ContainerImportPageClient({
           totalRows={batch.totalRows}
           validRows={batch.successRows}
           invalidRows={batch.errorRows}
+          selectedRowKey={
+            selectedRow ? `${selectedRow.rowNo}-${selectedRow.containerNo ?? "unknown"}` : null
+          }
+          onSelectRow={setSelectedRow}
+        />
+
+        <PreviewRowDetailSheet
+          row={selectedRow}
+          open={!!selectedRow}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedRow(null)
+            }
+          }}
         />
       </div>
     </DashboardLayout>
