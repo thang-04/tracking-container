@@ -19,7 +19,6 @@ test("classifies auth routes correctly", () => {
 test("classifies portal and internal routes correctly", () => {
   assert.equal(getRouteSurface("/"), "internal")
   assert.equal(getRouteSurface("/containers"), "internal")
-  assert.equal(getRouteSurface("/map"), "internal")
   assert.equal(getRouteSurface("/portal"), "portal")
   assert.equal(getRouteSurface("/portal/history"), "portal")
 })

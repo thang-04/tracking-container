@@ -42,11 +42,6 @@ export function LiveTrackingPreview({ overview }: { overview: TrackingOverview }
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={hasData ? "default" : "secondary"}>{hasData ? "Có dữ liệu" : "Chưa có dữ liệu"}</Badge>
-            <Link href="/map">
-              <Button variant="ghost" size="sm" className="gap-1">
-                Xem bản đồ <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
           </div>
         </div>
 

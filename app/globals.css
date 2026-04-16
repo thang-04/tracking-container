@@ -135,3 +135,20 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Table styles */
+.data-table {
+  @apply w-full text-sm;
+}
+
+.data-table th {
+  @apply bg-secondary/50 text-muted-foreground font-medium text-left px-4 py-3 border-b border-border sticky top-0;
+}
+
+.data-table td {
+  @apply px-4 py-3 border-b border-border/50;
+}
+
+.data-table tr:hover td {
+  @apply bg-secondary/30;
+}

@@ -42,8 +42,6 @@ const quickAccessSections = [
       { label: "Container", href: "/containers", icon: Package },
       { label: "Quản lý bãi", href: "/yard", icon: Grid3X3 },
       { label: "Vận chuyển", href: "/transport", icon: Truck },
-      { label: "Bản đồ", href: "/map", icon: MapPin },
-      { label: "Cảnh báo", href: "/alerts", icon: AlertTriangle },
     ],
   },
   {

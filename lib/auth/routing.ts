@@ -4,7 +4,7 @@ export type AppRole = (typeof APP_ROLES)[number]
 export type RouteSurface = "auth" | "internal" | "portal" | "public"
 
 const AUTH_PATHS = ["/login", "/forgot-password", "/reset-password", "/unauthorized"] as const
-const INTERNAL_PREFIXES = ["/alerts", "/containers", "/customs", "/map", "/settings", "/transport", "/users", "/ahp", "/simulation"] as const
+const INTERNAL_PREFIXES = ["/containers", "/customs", "/settings", "/transport", "/users", "/ahp", "/simulation"] as const
 
 function normalizePathname(pathname: string) {
   if (!pathname) {

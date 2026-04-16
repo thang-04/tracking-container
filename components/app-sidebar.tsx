@@ -14,6 +14,7 @@ import {
   MapPin,
   Package,
   Settings,
+  Ship,
   Truck,
   Users,
 } from "lucide-react"
@@ -49,9 +50,7 @@ const navigation = [
   { name: "Bảng điều khiển", href: "/", icon: LayoutDashboard },
   { name: "Container", href: "/containers", icon: Package },
   { name: "Quản lý bãi", href: "/yard", icon: Grid3X3 },
-  { name: "Vận chuyển", href: "/transport", icon: Truck },
-  { name: "Bản đồ", href: "/map", icon: MapPin },
-  { name: "Cảnh báo", href: "/alerts", icon: AlertTriangle },
+  { name: "Quản Lý Chuyến Sà Lan", href: "/transport", icon: Ship },
   { name: "Hoạt động hải quan", href: "/customs", icon: FileText },
   { name: "Người dùng", href: "/users", icon: Users },
   { name: "Cài đặt", href: "/settings", icon: Settings },
