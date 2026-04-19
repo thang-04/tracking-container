@@ -190,7 +190,7 @@ export function AppSidebar() {
 
       <SidebarContent className="px-2 py-3">
         <SidebarMenu>
-          {navigation.map((item) => {
+          {navigation.filter((item) => item.href !== "/").map((item) => {
             const isActive = isActiveRoute(pathname, item.href)
 
             if (item.items && item.items.length > 0) {

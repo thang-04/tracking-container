@@ -88,6 +88,7 @@ function normalizeContainerImportRow(
     grp: normalizeText(input.grp),
     sealNo2: normalizeText(input.seal_no2),
     frghtKind: normalizeText(input.frght_kind),
+    ibActualVisit: normalizeText(input.ib_actual_visit),
     obActualVisit: normalizeText(input.ob_actual_visit),
     reqsPower: normalizeText(input.reqs_power),
     tempRequiredC: normalizeText(input.temp_required_c),
@@ -246,6 +247,7 @@ const CONTAINER_IMPORT_HEADER_TO_DATA_KEY = {
   grp: "grp",
   seal_no2: "sealNo2",
   frght_kind: "frghtKind",
+  ib_actual_visit: "ibActualVisit",
   ob_actual_visit: "obActualVisit",
   reqs_power: "reqsPower",
   temp_required_c: "tempRequiredC",
@@ -440,8 +442,7 @@ function buildSheet1RowNote(sourceRow: Record<string, string | null>) {
 function pickDischargeBillNo(sourceRow: Record<string, string | null>) {
   return (
     normalizeText(sourceRow["RLH"]) ??
-    normalizeText(sourceRow["RDH"]) ??
-    normalizeText(sourceRow["I/B Actual Visit"])
+    normalizeText(sourceRow["RDH"])
   )
 }
 
@@ -599,7 +600,7 @@ function parseDischargeSpreadsheetRows(
       shipping_line_code: normalizeCode(getValue(row, "Line Op")),
       gross_weight_kg: normalizeText(getValue(row, "Weight (kg)")?.replace(/,/g, "").trim()),
       eta: null,
-      bill_no: normalizeText(getValue(row, "I/B Actual Visit")),
+      bill_no: pickDischargeBillNo(sourceRow),
       seal_no: normalizeText(getValue(row, "Seal Nbr1")),
       current_port_code: mappedPortCode,
       current_yard_code: null,
@@ -615,6 +616,7 @@ function parseDischargeSpreadsheetRows(
       grp: normalizeText(getValue(row, "Grp")),
       seal_no2: normalizeText(getValue(row, "Seal Nbr2")),
       frght_kind: normalizeText(getValue(row, "Frght Kind")),
+      ib_actual_visit: normalizeText(getValue(row, "I/B Actual Visit")),
       ob_actual_visit: normalizeText(getValue(row, "O/B Actual Visit")),
       reqs_power: normalizeText(getValue(row, "Reqs Power")),
       temp_required_c: normalizeText(getValue(row, "Temp Required (C)")),
@@ -1115,6 +1117,7 @@ export function resolveContainerImportRow(
           grp: row.data.grp,
           sealNo2: row.data.sealNo2,
           frghtKind: row.data.frghtKind,
+          ibActualVisit: row.data.ibActualVisit,
           obActualVisit: row.data.obActualVisit,
           reqsPower: parseBool(row.data.reqsPower),
           tempRequiredC: row.data.tempRequiredC,

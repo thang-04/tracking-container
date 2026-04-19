@@ -54,6 +54,7 @@ type PreviewRow = ContainerImportPreviewBatch["rows"][number] & {
   grp: string | null
   sealNo2: string | null
   frghtKind: string | null
+  ibActualVisit: string | null
   obActualVisit: string | null
   reqsPower: boolean | null
   tempRequiredC: string | null
@@ -521,6 +522,7 @@ function PreviewRowDetailSheet({
             </div>
             <div className="grid gap-2 md:grid-cols-2">
               <PreviewDetailField label="Hãng tàu" value={formatText(row.shippingLineCode)} />
+              <PreviewDetailField label="Inbound visit" value={formatText(row.ibActualVisit)} />
               <PreviewDetailField label="Bill No" value={formatText(row.billNo)} />
               <PreviewDetailField label="Outbound visit" value={formatText(row.obActualVisit)} />
               <PreviewDetailField label="ETA" value={formatDateTime(row.eta)} />
@@ -604,6 +606,7 @@ function PreviewRowTable({
         row.shippingLineCode,
         row.grossWeightKg,
         row.eta,
+        row.ibActualVisit,
         row.billNo,
         row.sealNo,
         row.currentPortCode,
@@ -757,8 +760,8 @@ function PreviewRowTable({
                     </TableCell>
                     <TableCell className="align-top text-xs">
                       <div className="space-y-1">
-                        <div className="font-medium truncate max-w-[150px]" title={row.billNo || undefined}>
-                          IB: {row.billNo || "—"}
+                        <div className="font-medium truncate max-w-[150px]" title={row.ibActualVisit || undefined}>
+                          IB: {row.ibActualVisit || "—"}
                         </div>
                         <div className="text-[10px] text-muted-foreground truncate">
                           OB: {row.obActualVisit || "—"}

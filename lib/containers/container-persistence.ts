@@ -511,6 +511,7 @@ export async function getContainerImportPreviewBatch(batchId: string) {
         grp: previewRow.data.grp,
         sealNo2: previewRow.data.sealNo2,
         frghtKind: previewRow.data.frghtKind,
+        ibActualVisit: previewRow.data.ibActualVisit,
         obActualVisit: previewRow.data.obActualVisit,
         reqsPower: rowValidation.resolved?.reqsPower ?? null,
         tempRequiredC: previewRow.data.tempRequiredC,

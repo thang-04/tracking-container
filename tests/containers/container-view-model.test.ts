@@ -28,6 +28,7 @@ const containers: ContainerDirectoryItem[] = [
     customsStatusLabel: null,
     billNo: null,
     sealNo: null,
+    ibActualVisit: null,
     voyageCode: null,
     vesselName: null,
   },
@@ -50,8 +51,9 @@ const containers: ContainerDirectoryItem[] = [
     customsStatusLabel: null,
     billNo: null,
     sealNo: null,
-    voyageCode: null,
-    vesselName: null,
+    ibActualVisit: null,
+    voyageCode: "IB123",
+    vesselName: "SA LAN 01",
   },
   {
     id: "c3",
@@ -72,6 +74,7 @@ const containers: ContainerDirectoryItem[] = [
     customsStatusLabel: null,
     billNo: null,
     sealNo: null,
+    ibActualVisit: null,
     voyageCode: null,
     vesselName: null,
   },
@@ -122,6 +125,22 @@ test("filters containers by search and status", () => {
     filterContainerDirectoryItems(containers, {
       searchTerm: "hp-hn",
       status: "in_transit",
+    })[0]?.id,
+    "c2",
+  )
+
+  assert.equal(
+    filterContainerDirectoryItems(containers, {
+      searchTerm: "sa lan 01",
+      status: "all",
+    })[0]?.id,
+    "c2",
+  )
+
+  assert.equal(
+    filterContainerDirectoryItems(containers, {
+      searchTerm: "ib123",
+      status: "all",
     })[0]?.id,
     "c2",
   )

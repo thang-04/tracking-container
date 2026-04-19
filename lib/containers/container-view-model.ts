@@ -28,6 +28,7 @@ export type ContainerDirectoryItem = {
   customsStatusLabel: string | null
   billNo: string | null
   sealNo: string | null
+  ibActualVisit: string | null
   voyageCode: string | null
   vesselName: string | null
 }
@@ -99,10 +100,13 @@ export function filterContainerDirectoryItems(
       item.locationLabel,
       item.destinationLabel,
       item.shippingLineLabel ?? "",
+      item.vesselName ?? "",
+      item.voyageCode ?? "",
       item.customerLabel ?? "",
       item.routeLabel ?? "",
       item.billNo ?? "",
       item.sealNo ?? "",
+      item.ibActualVisit ?? "",
       item.categoryLabel ?? "",
       item.tStateLabel ?? "",
       item.vStateLabel ?? "",

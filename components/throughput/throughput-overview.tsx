@@ -16,7 +16,6 @@ import {
   Sun,
   Moon,
   Grid3X3,
-  Ship,
   Wrench,
   LineChart,
   FileText,
@@ -34,8 +33,6 @@ import {
 } from "recharts"
 
 import { ThroughputYard } from "./throughput-yard"
-import { ThroughputQuaySide } from "./throughput-quayside"
-import { ThroughputEquipment } from "./throughput-equipment"
 
 const dayChartData = [
   { time: "07:00", import20: 0, import40: 60, export20: 40, export40: 60, total: 300 },
@@ -137,28 +134,19 @@ export function ThroughputOverview() {
             <span className="hidden sm:inline">Yard</span>
           </Button>
           <Button 
-            variant={activeTab === "quayside" ? "secondary" : "ghost"} 
-            size="sm" 
-            onClick={() => setActiveTab("quayside")}
-            className={`gap-2 transition-colors ${activeTab === "quayside" ? "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20" : "hover:bg-muted text-muted-foreground"}`}
-          >
-            <Ship className="h-4 w-4" />
-            <span className="hidden sm:inline">Quay Side</span>
-          </Button>
-          <Button 
             variant={activeTab === "equipment" ? "secondary" : "ghost"} 
             size="sm" 
             onClick={() => setActiveTab("equipment")}
-            className={`gap-2 transition-colors ${activeTab === "equipment" ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" : "hover:bg-muted text-muted-foreground"}`}
+            className={`hidden gap-2 transition-colors ${activeTab === "equipment" ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" : "hover:bg-muted text-muted-foreground"}`}
           >
             <Wrench className="h-4 w-4" />
             <span className="hidden sm:inline">Thiết bị</span>
           </Button>
-          <Button variant="ghost" size="sm" className="gap-2 hover:bg-muted transition-colors text-muted-foreground">
+          <Button variant="ghost" size="sm" className="hidden gap-2 hover:bg-muted transition-colors text-muted-foreground">
             <LineChart className="h-4 w-4" />
             <span className="hidden sm:inline">Analytics</span>
           </Button>
-          <Button variant="ghost" size="sm" className="gap-2 hover:bg-muted transition-colors text-muted-foreground">
+          <Button variant="ghost" size="sm" className="hidden gap-2 hover:bg-muted transition-colors text-muted-foreground">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Report</span>
           </Button>
@@ -188,8 +176,6 @@ export function ThroughputOverview() {
 
       {activeTab === "overview" && <OverviewContent isDayShift={isDayShift} shiftsInfo={shiftsInfo} />}
       {activeTab === "yard" && <ThroughputYard isDayShift={isDayShift} />}
-      {activeTab === "quayside" && <ThroughputQuaySide isDayShift={isDayShift} />}
-      {activeTab === "equipment" && <ThroughputEquipment />}
     </div>
   )
 }

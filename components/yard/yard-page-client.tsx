@@ -795,7 +795,7 @@ export function YardPageClient({ overview }: { overview: YardOverview }) {
                             <div className="mt-4 flex items-end justify-between gap-3">
                               <div>
                                 <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                                  Occupancy
+                                  Mức lấp đầy
                                 </p>
                                 <p className="mt-1 text-lg font-semibold text-foreground">
                                   {block.occupiedSlots}/{block.totalSlots} slot

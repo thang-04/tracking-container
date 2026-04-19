@@ -25,6 +25,7 @@ export const CONTAINER_IMPORT_OPTIONAL_HEADERS = [
   "grp",
   "seal_no2",
   "frght_kind",
+  "ib_actual_visit",
   "ob_actual_visit",
   "reqs_power",
   "temp_required_c",
@@ -80,6 +81,7 @@ export type CanonicalContainerImportRow = {
   grp: string | null
   sealNo2: string | null
   frghtKind: string | null
+  ibActualVisit: string | null
   obActualVisit: string | null
   reqsPower: string | null
   tempRequiredC: string | null
@@ -175,6 +177,7 @@ export type ResolvedContainerMutationInput = {
   grp: string | null
   sealNo2: string | null
   frghtKind: string | null
+  ibActualVisit: string | null
   obActualVisit: string | null
   reqsPower: boolean | null
   tempRequiredC: string | null

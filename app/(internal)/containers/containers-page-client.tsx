@@ -1,12 +1,13 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Check, ChevronLeft, ChevronRight, ChevronsUpDown, Download, Package, Search, Ship } from "lucide-react"
+import { Check, ChevronLeft, ChevronRight, ChevronsUpDown, Package, Search, Ship } from "lucide-react"
 
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 import { ContainerImportDialog } from "@/components/containers/container-import-dialog"
+import { ContainerDownloadDialog } from "@/components/containers/container-download-dialog"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -55,6 +56,7 @@ import { cn } from "@/lib/utils"
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
 const DEFAULT_PAGE_SIZE = 20
+const UNKNOWN_VESSEL_LABEL = "ko ro tau"
 
 /** Build a compact page range like [1, '…', 4, 5, 6, '…', 10] */
 function buildPageRange(currentPage: number, totalPages: number): (number | "ellipsis")[] {
@@ -186,9 +188,10 @@ function ContainerDetailSheet(props: {
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Hành trình & đối tác</h3>
             <div className="grid gap-3 sm:grid-cols-2">
-              <DetailField label="Hãng tàu" value={container.shippingLineLabel ?? "Chưa gán"} />
+              <DetailField label="Tên sà lan" value={container.vesselName ?? UNKNOWN_VESSEL_LABEL} />
               <DetailField label="Khách hàng" value={container.customerLabel ?? "Chưa gán"} />
               <DetailField label="Tuyến" value={container.routeLabel ?? "Chưa gán"} />
+              <DetailField label="I/B Actual Visit" value={container.ibActualVisit ?? "Chưa cập nhật"} mono />
               <DetailField label="Trạng thái hải quan" value={container.customsStatusLabel ?? "Chưa cập nhật"} />
             </div>
           </section>
@@ -209,11 +212,9 @@ function ContainerDetailSheet(props: {
 export function ContainersPageClient({
   containers,
   formOptions,
-  vesselVoyages,
 }: {
   containers: ContainerDirectoryItem[]
   formOptions: ContainerFormOptions
-  vesselVoyages: { vesselName: string; voyageCode: string }[]
 }) {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] =
@@ -225,6 +226,51 @@ export function ContainersPageClient({
   const [selectedContainer, setSelectedContainer] = useState<ContainerDirectoryItem | null>(null)
 
   const stats = useMemo(() => buildContainerDirectoryStats(containers), [containers])
+
+  const voyageOptions = useMemo(() => {
+    const deduped = new Map<string, { voyageCode: string; vesselName: string | null }>()
+
+    containers.forEach((container) => {
+      if (!container.voyageCode) {
+        return
+      }
+
+      const current = deduped.get(container.voyageCode)
+
+      if (!current) {
+        deduped.set(container.voyageCode, {
+          voyageCode: container.voyageCode,
+          vesselName: container.vesselName ?? null,
+        })
+        return
+      }
+
+      if (!current.vesselName && container.vesselName) {
+        deduped.set(container.voyageCode, {
+          ...current,
+          vesselName: container.vesselName,
+        })
+      }
+    })
+
+    return [...deduped.values()].sort((a, b) => a.voyageCode.localeCompare(b.voyageCode, "vi"))
+  }, [containers])
+
+  const statusOptions = useMemo(() => {
+    const statuses = [...new Set(containers.map((container) => container.status))]
+    return statuses
+      .map((status) => ({
+        value: status,
+        label: getContainerStatusMeta(status).label,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, "vi"))
+  }, [containers])
+
+  const selectedVoyageOption = useMemo(
+    () => voyageOptions.find((option) => option.voyageCode === voyageFilter) ?? null,
+    [voyageOptions, voyageFilter],
+  )
+
   const filteredContainers = useMemo(
     () =>
       filterContainerDirectoryItems(containers, {
@@ -239,6 +285,26 @@ export function ContainersPageClient({
   useEffect(() => {
     setCurrentPage(1)
   }, [searchTerm, statusFilter, voyageFilter])
+
+  useEffect(() => {
+    if (statusFilter === "all") {
+      return
+    }
+
+    if (!statusOptions.some((option) => option.value === statusFilter)) {
+      setStatusFilter("all")
+    }
+  }, [statusFilter, statusOptions])
+
+  useEffect(() => {
+    if (!voyageFilter) {
+      return
+    }
+
+    if (!voyageOptions.some((option) => option.voyageCode === voyageFilter)) {
+      setVoyageFilter(null)
+    }
+  }, [voyageFilter, voyageOptions])
 
   useEffect(() => {
     if (!selectedContainer) {
@@ -301,8 +367,10 @@ export function ContainersPageClient({
                         <Ship className="size-4 shrink-0" />
                         <span className="truncate">
                           {voyageFilter
-                            ? vesselVoyages.find((v) => v.voyageCode === voyageFilter)?.vesselName + " - " + voyageFilter
-                            : "Tìm tên tàu / chuyến..."}
+                            ? selectedVoyageOption
+                              ? `${selectedVoyageOption.vesselName ?? UNKNOWN_VESSEL_LABEL} - ${selectedVoyageOption.voyageCode}`
+                              : voyageFilter
+                            : "Tìm tên sà lan / chuyến..."}
                         </span>
                       </div>
                       <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
@@ -310,14 +378,14 @@ export function ContainersPageClient({
                   </PopoverTrigger>
                   <PopoverContent className="w-[280px] p-0" align="start">
                     <Command>
-                      <CommandInput placeholder="Nhập tên tàu hoặc chuyến..." />
+                      <CommandInput placeholder="Nhập tên sà lan hoặc chuyến..." />
                       <CommandList>
-                        <CommandEmpty>Không tìm thấy tàu hoặc chuyến.</CommandEmpty>
+                        <CommandEmpty>Không tìm thấy sà lan hoặc chuyến.</CommandEmpty>
                         <CommandGroup>
-                          {vesselVoyages.map((item) => (
+                          {voyageOptions.map((item) => (
                             <CommandItem
                               key={item.voyageCode}
-                              value={`${item.vesselName} ${item.voyageCode}`}
+                              value={`${item.vesselName ?? ""} ${item.voyageCode}`}
                               onSelect={() => {
                                 setVoyageFilter(item.voyageCode === voyageFilter ? null : item.voyageCode)
                                 setComboboxOpen(false)
@@ -329,7 +397,7 @@ export function ContainersPageClient({
                                   voyageFilter === item.voyageCode ? "opacity-100" : "opacity-0"
                                 )}
                               />
-                              {item.vesselName} - {item.voyageCode}
+                              {(item.vesselName ?? UNKNOWN_VESSEL_LABEL)} - {item.voyageCode}
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -342,7 +410,7 @@ export function ContainersPageClient({
                   <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     className="w-full bg-secondary pl-9 md:w-72"
-                    placeholder="Tìm theo mã, hãng tàu, khách hàng, tuyến..."
+                    placeholder="Tìm theo mã, tên sà lan, khách hàng, tuyến..."
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
                   />
@@ -358,19 +426,20 @@ export function ContainersPageClient({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                    <SelectItem value="new">Mới tạo</SelectItem>
-                    <SelectItem value="at_seaport_yard">Tại bãi cảng biển</SelectItem>
-                    <SelectItem value="on_barge">Đã xếp lên sà lan</SelectItem>
-                    <SelectItem value="in_transit">Đang hành trình</SelectItem>
-                    <SelectItem value="at_dryport_yard">Tại bãi cảng cạn</SelectItem>
-                    <SelectItem value="released">Đã giải phóng</SelectItem>
-                    <SelectItem value="hold">Đang giữ</SelectItem>
+                    {statusOptions.map((statusOption) => (
+                      <SelectItem key={statusOption.value} value={statusOption.value}>
+                        {statusOption.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                <Button variant="outline" size="icon" disabled>
-                  <Download className="size-4" />
-                </Button>
-                <ContainerImportDialog />
+                <div className="flex w-full items-center justify-end gap-2 md:ml-auto md:w-auto">
+                  <ContainerImportDialog />
+                  <ContainerDownloadDialog
+                    containers={containers}
+                    unknownVesselLabel={UNKNOWN_VESSEL_LABEL}
+                  />
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -422,7 +491,7 @@ export function ContainersPageClient({
                               <div className="space-y-1">
                                 <p className="font-mono font-medium">{container.containerNo}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  {container.shippingLineLabel ?? "Chưa gắn hãng tàu"}
+                                  {container.vesselName ?? UNKNOWN_VESSEL_LABEL}
                                 </p>
                               </div>
                             </TableCell>
@@ -463,7 +532,7 @@ export function ContainersPageClient({
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground space-y-1 max-w-[120px] truncate">
                               <p className="font-medium text-foreground">{container.voyageCode ?? "--"}</p>
-                              {container.vesselName && <p className="text-xs">{container.vesselName}</p>}
+                              <p className="text-xs">{container.vesselName ?? UNKNOWN_VESSEL_LABEL}</p>
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground space-y-1">
                               <p>{container.etaLabel}</p>

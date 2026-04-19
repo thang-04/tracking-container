@@ -29,6 +29,43 @@ function formatWeightKg(weight: number | null) {
   }).format(weight)} kg`
 }
 
+function normalizeOptionalText(value: unknown) {
+  if (typeof value !== "string") {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return trimmed ? trimmed : null
+}
+
+function extractInboundActualVisit(rawData: unknown) {
+  if (!rawData || typeof rawData !== "object" || Array.isArray(rawData)) {
+    return null
+  }
+
+  const record = rawData as Record<string, unknown>
+  const directValue =
+    normalizeOptionalText(record["I/B Actual Visit"]) ??
+    normalizeOptionalText(record.ibActualVisit) ??
+    normalizeOptionalText(record.ib_actual_visit)
+
+  if (directValue) {
+    return directValue
+  }
+
+  const hasDischargeMarkers =
+    normalizeOptionalText(record["Unit Nbr"]) !== null ||
+    normalizeOptionalText(record["Type ISO"]) !== null ||
+    normalizeOptionalText(record.POD) !== null ||
+    normalizeOptionalText(record.obActualVisit) !== null
+
+  if (!hasDischargeMarkers) {
+    return null
+  }
+
+  return normalizeOptionalText(record.billNo) ?? normalizeOptionalText(record.bill_no)
+}
+
 function getLocationLabel(input: {
   portName: string | null
   yardName: string | null
@@ -76,6 +113,15 @@ export async function getContainerDirectory(): Promise<ContainerDirectoryItem[]>
       customsStatus: true,
       billNo: true,
       sealNo: true,
+      ediBatchRows: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+        select: {
+          rawData: true,
+        },
+      },
       containerType: {
         select: {
           code: true,
@@ -135,6 +181,11 @@ export async function getContainerDirectory(): Promise<ContainerDirectoryItem[]>
 
   return containers.map((container) => {
     const status = container.currentStatus as ContainerDirectoryStatus
+    const inboundActualVisit = extractInboundActualVisit(container.ediBatchRows[0]?.rawData)
+    const displayVoyageCode = container.currentVoyage?.code ?? inboundActualVisit ?? null
+    const vesselName =
+      normalizeOptionalText(container.currentVoyage?.vehicle?.name) ??
+      normalizeOptionalText(container.shippingLine?.name)
     const getCustomsStatusLabel = (sts: string) => {
       switch (sts) {
         case "pending": return "Chờ xử lý"
@@ -155,7 +206,7 @@ export async function getContainerDirectory(): Promise<ContainerDirectoryItem[]>
         yardName: container.currentYard?.name ?? null,
         blockCode: container.currentBlock?.code ?? null,
         slotCode: container.currentSlot?.code ?? null,
-        voyageCode: container.currentVoyage?.code ?? null,
+        voyageCode: displayVoyageCode,
       }),
       destinationLabel:
         container.route?.destinationPort.name ??
@@ -174,8 +225,9 @@ export async function getContainerDirectory(): Promise<ContainerDirectoryItem[]>
       customsStatusLabel: getCustomsStatusLabel(container.customsStatus),
       billNo: container.billNo ?? null,
       sealNo: container.sealNo ?? null,
-      voyageCode: container.currentVoyage?.code ?? null,
-      vesselName: container.currentVoyage?.vehicle?.name ?? null,
+      ibActualVisit: inboundActualVisit,
+      voyageCode: displayVoyageCode,
+      vesselName,
     }
   })
 }

@@ -37,6 +37,7 @@ function createRow(
       grp: null,
       sealNo2: null,
       frghtKind: null,
+      ibActualVisit: null,
       obActualVisit: null,
       reqsPower: null,
       tempRequiredC: null,
