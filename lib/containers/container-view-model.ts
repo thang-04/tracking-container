@@ -28,6 +28,8 @@ export type ContainerDirectoryItem = {
   customsStatusLabel: string | null
   billNo: string | null
   sealNo: string | null
+  voyageCode: string | null
+  vesselName: string | null
 }
 
 const CONTAINER_STATUS_META: Record<
@@ -85,6 +87,7 @@ export function filterContainerDirectoryItems(
   filters: {
     searchTerm: string
     status: ContainerDirectoryFilterStatus
+    voyageCode?: string | null
   },
 ) {
   const searchTerm = filters.searchTerm.trim().toLowerCase()
@@ -109,7 +112,8 @@ export function filterContainerDirectoryItems(
 
     const matchesSearch = searchTerm.length === 0 || haystack.includes(searchTerm)
     const matchesStatus = filters.status === "all" || item.status === filters.status
+    const matchesVoyage = !filters.voyageCode || item.voyageCode === filters.voyageCode
 
-    return matchesSearch && matchesStatus
+    return matchesSearch && matchesStatus && matchesVoyage
   })
 }

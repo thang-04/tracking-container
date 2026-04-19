@@ -1,20 +1,15 @@
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { EfficiencyChart } from "@/components/dashboard/efficiency-chart"
 import { KPICard } from "@/components/dashboard/kpi-card"
-import { LiveTrackingPreview } from "@/components/dashboard/live-tracking-preview"
 import { OperationsChart } from "@/components/dashboard/operations-chart"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { getDashboardOverview } from "@/lib/dashboard/get-dashboard-overview"
-import { getTrackingOverview } from "@/lib/tracking/get-tracking-overview"
 import { Package, Ship, TrendingUp, Truck } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
 export default async function DashboardPage() {
-  const [dashboard, overview] = await Promise.all([
-    getDashboardOverview(),
-    getTrackingOverview({ mode: "preview", vehicleLimit: 3, routeLimit: 2 }),
-  ])
+  const dashboard = await getDashboardOverview()
 
   return (
     <DashboardLayout title="Bảng điều khiển" description="Tổng quan hoạt động cảng và logistics">
@@ -58,8 +53,7 @@ export default async function DashboardPage() {
         <EfficiencyChart data={dashboard.routeEfficiency} />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <LiveTrackingPreview overview={overview} />
+      <div className="mt-6">
         <RecentActivity activities={dashboard.recentActivities} />
       </div>
     </DashboardLayout>

@@ -125,6 +125,9 @@ export async function getContainerDirectory(): Promise<ContainerDirectoryItem[]>
       currentVoyage: {
         select: {
           code: true,
+          vehicle: {
+            select: { name: true }
+          }
         },
       },
     },
@@ -171,6 +174,8 @@ export async function getContainerDirectory(): Promise<ContainerDirectoryItem[]>
       customsStatusLabel: getCustomsStatusLabel(container.customsStatus),
       billNo: container.billNo ?? null,
       sealNo: container.sealNo ?? null,
+      voyageCode: container.currentVoyage?.code ?? null,
+      vesselName: container.currentVoyage?.vehicle?.name ?? null,
     }
   })
 }

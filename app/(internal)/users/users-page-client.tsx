@@ -76,19 +76,23 @@ function StatCard(props: {
 }
 
 export function UsersPageClient({ users }: { users: UserDirectoryItem[] }) {
+  const allowedUsers = useMemo(() => {
+    return users.filter(u => u.role === "admin" || u.role === "dryport_staff")
+  }, [users])
+
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState<UserDirectoryFilterRole>("all")
   const [statusFilter, setStatusFilter] = useState<UserDirectoryFilterStatus>("all")
 
-  const stats = useMemo(() => buildUserDirectoryStats(users), [users])
+  const stats = useMemo(() => buildUserDirectoryStats(allowedUsers), [allowedUsers])
   const filteredUsers = useMemo(
     () =>
-      filterUserDirectoryItems(users, {
+      filterUserDirectoryItems(allowedUsers, {
         searchTerm,
         role: roleFilter,
         status: statusFilter,
       }),
-    [users, searchTerm, roleFilter, statusFilter],
+    [allowedUsers, searchTerm, roleFilter, statusFilter],
   )
 
   return (
@@ -97,12 +101,10 @@ export function UsersPageClient({ users }: { users: UserDirectoryItem[] }) {
       description="Danh sách tài khoản đang được cấp quyền trong hệ thống"
     >
       <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-3">
           <StatCard icon={Users} title="Tổng người dùng" value={stats.total} />
           <StatCard icon={Shield} title="Quản trị viên" value={stats.admins} />
-          <StatCard icon={Building2} title="Nhân viên cảng biển" value={stats.seaportStaff} />
           <StatCard icon={Warehouse} title="Nhân viên cảng cạn" value={stats.dryportStaff} />
-          <StatCard icon={Users} title="Khách hàng" value={stats.customers} />
         </div>
 
         <Card className="border-border/50">
@@ -134,9 +136,7 @@ export function UsersPageClient({ users }: { users: UserDirectoryItem[] }) {
                   <SelectContent>
                     <SelectItem value="all">Tất cả vai trò</SelectItem>
                     <SelectItem value="admin">Quản trị viên</SelectItem>
-                    <SelectItem value="seaport_staff">Nhân viên cảng biển</SelectItem>
                     <SelectItem value="dryport_staff">Nhân viên cảng cạn</SelectItem>
-                    <SelectItem value="customer">Khách hàng</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select
@@ -235,7 +235,7 @@ export function UsersPageClient({ users }: { users: UserDirectoryItem[] }) {
                   </Table>
                 </div>
                 <div className="pt-4 text-sm text-muted-foreground">
-                  Hiển thị {filteredUsers.length} trong {users.length} người dùng.
+                  Hiển thị {filteredUsers.length} trong {allowedUsers.length} người dùng.
                 </div>
               </>
             )}

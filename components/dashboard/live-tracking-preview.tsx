@@ -79,8 +79,8 @@ export function LiveTrackingPreview({ overview }: { overview: TrackingOverview }
               vehicles={overview.vehicles}
               selectedVehicleId={null}
               selectedLocationId={null}
-              onSelectVehicle={() => {}}
-              onSelectLocation={() => {}}
+              onSelectVehicle={() => { }}
+              onSelectLocation={() => { }}
             />
           </div>
         </div>

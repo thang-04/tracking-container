@@ -36,6 +36,7 @@ import {
   Edit,
   MoreHorizontal,
 } from "lucide-react"
+import { format } from "date-fns"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,9 +56,19 @@ interface BargeTrip {
   assignedContainers: number
   eta: string
   etd: string
-  actualArrival: string | null
+  ata: string | null
+  atd: string | null
   status: "planned" | "inbound" | "arrived" | "discharging" | "completed" | "delayed"
   notes: string
+}
+
+function formatTripDate(val: string | null | undefined) {
+  if (!val) return "—"
+  try {
+    return format(new Date(val), "dd-MMM-yyyy HH:mm:ss")
+  } catch (e) {
+    return val
+  }
 }
 
 const statusLabels: Record<string, string> = {
@@ -80,9 +91,10 @@ const tripsData: BargeTrip[] = [
     destination: "ICD Bình Dương",
     capacity: 80,
     assignedContainers: 45,
-    eta: "2024-01-15 10:30",
-    etd: "2024-01-15 06:00",
-    actualArrival: "2024-01-15 10:25",
+    eta: "2024-01-15T10:30:00",
+    etd: "2024-01-15T06:00:00",
+    ata: "2024-01-15T10:25:00",
+    atd: "2024-01-15T06:05:00",
     status: "discharging",
     notes: "Hoạt động bình thường",
   },
@@ -96,9 +108,10 @@ const tripsData: BargeTrip[] = [
     destination: "Cảng cạn Long An",
     capacity: 100,
     assignedContainers: 62,
-    eta: "2024-01-15 14:00",
-    etd: "2024-01-15 09:30",
-    actualArrival: null,
+    eta: "2024-01-15T14:00:00",
+    etd: "2024-01-15T09:30:00",
+    ata: null,
+    atd: "2024-01-15T09:35:00",
     status: "inbound",
     notes: "Đúng lịch trình",
   },
@@ -112,9 +125,10 @@ const tripsData: BargeTrip[] = [
     destination: "ICD Bình Dương",
     capacity: 60,
     assignedContainers: 38,
-    eta: "2024-01-15 16:45",
-    etd: "2024-01-15 12:00",
-    actualArrival: null,
+    eta: "2024-01-15T16:45:00",
+    etd: "2024-01-15T12:00:00",
+    ata: null,
+    atd: null,
     status: "planned",
     notes: "Chờ khởi hành",
   },
@@ -128,9 +142,10 @@ const tripsData: BargeTrip[] = [
     destination: "Cảng cạn Long An",
     capacity: 90,
     assignedContainers: 51,
-    eta: "2024-01-15 18:30",
-    etd: "2024-01-15 13:00",
-    actualArrival: null,
+    eta: "2024-01-15T18:30:00",
+    etd: "2024-01-15T13:00:00",
+    ata: null,
+    atd: "2024-01-15T13:45:00",
     status: "delayed",
     notes: "Chậm do thời tiết - ETA đã điều chỉnh",
   },
@@ -144,9 +159,10 @@ const tripsData: BargeTrip[] = [
     destination: "ICD Bình Dương",
     capacity: 80,
     assignedContainers: 78,
-    eta: "2024-01-15 08:00",
-    etd: "2024-01-15 03:30",
-    actualArrival: "2024-01-15 07:55",
+    eta: "2024-01-15T08:00:00",
+    etd: "2024-01-15T03:30:00",
+    ata: "2024-01-15T07:55:00",
+    atd: "2024-01-15T03:30:00",
     status: "completed",
     notes: "Đã dỡ hết container",
   },
@@ -209,12 +225,22 @@ export default function TransportPage() {
     {
       key: "eta",
       header: "ETA",
-      cell: (row: BargeTrip) => (
-        <div className="flex items-center gap-1 text-sm">
-          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-          {row.eta.split(" ")[1]}
-        </div>
-      ),
+      cell: (row: BargeTrip) => <span className="text-sm whitespace-nowrap">{formatTripDate(row.eta)}</span>,
+    },
+    {
+      key: "etd",
+      header: "ETD",
+      cell: (row: BargeTrip) => <span className="text-sm whitespace-nowrap">{formatTripDate(row.etd)}</span>,
+    },
+    {
+      key: "ata",
+      header: "ATA",
+      cell: (row: BargeTrip) => <span className="text-sm whitespace-nowrap">{formatTripDate(row.ata)}</span>,
+    },
+    {
+      key: "atd",
+      header: "ATD",
+      cell: (row: BargeTrip) => <span className="text-sm whitespace-nowrap">{formatTripDate(row.atd)}</span>,
     },
     {
       key: "status",
@@ -439,8 +465,12 @@ export default function TransportPage() {
                   <p className="font-medium mt-1">{selectedTrip.eta}</p>
                 </div>
                 <div className="bg-secondary/30 rounded-lg p-4">
-                  <label className="text-xs text-muted-foreground">Thời gian đến thực tế</label>
-                  <p className="font-medium mt-1">{selectedTrip.actualArrival || "—"}</p>
+                  <label className="text-xs text-muted-foreground">Thời gian đến thực tế (ATA)</label>
+                  <p className="font-medium mt-1">{formatTripDate(selectedTrip.ata)}</p>
+                </div>
+                <div className="bg-secondary/30 rounded-lg p-4">
+                  <label className="text-xs text-muted-foreground">Thời gian đi thực tế (ATD)</label>
+                  <p className="font-medium mt-1">{formatTripDate(selectedTrip.atd)}</p>
                 </div>
               </div>
             </div>

@@ -476,7 +476,7 @@ export default function YardManagementPage() {
 
       {/* Block Detail Dialog */}
       <Dialog open={!!selectedBlock} onOpenChange={() => setSelectedBlock(null)}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-[95vw] lg:max-w-7xl overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Grid3X3 className="w-5 h-5" />

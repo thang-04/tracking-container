@@ -1,7 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { ChevronLeft, ChevronRight, Download, Package, Search } from "lucide-react"
+import { Check, ChevronLeft, ChevronRight, ChevronsUpDown, Download, Package, Search, Ship } from "lucide-react"
+
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 import { ContainerImportDialog } from "@/components/containers/container-import-dialog"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -206,13 +209,17 @@ function ContainerDetailSheet(props: {
 export function ContainersPageClient({
   containers,
   formOptions,
+  vesselVoyages,
 }: {
   containers: ContainerDirectoryItem[]
   formOptions: ContainerFormOptions
+  vesselVoyages: { vesselName: string; voyageCode: string }[]
 }) {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] =
     useState<ContainerDirectoryFilterStatus>("all")
+  const [voyageFilter, setVoyageFilter] = useState<string | null>(null)
+  const [comboboxOpen, setComboboxOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [selectedContainer, setSelectedContainer] = useState<ContainerDirectoryItem | null>(null)
@@ -223,14 +230,15 @@ export function ContainersPageClient({
       filterContainerDirectoryItems(containers, {
         searchTerm,
         status: statusFilter,
+        voyageCode: voyageFilter,
       }),
-    [containers, searchTerm, statusFilter],
+    [containers, searchTerm, statusFilter, voyageFilter],
   )
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, statusFilter])
+  }, [searchTerm, statusFilter, voyageFilter])
 
   useEffect(() => {
     if (!selectedContainer) {
@@ -278,6 +286,58 @@ export function ContainersPageClient({
                 <CardTitle className="text-base font-medium">Danh sách container</CardTitle>
               </div>
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={comboboxOpen}
+                      className={cn(
+                        "w-full justify-between bg-secondary md:w-64",
+                        voyageFilter ? "text-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Ship className="size-4 shrink-0" />
+                        <span className="truncate">
+                          {voyageFilter
+                            ? vesselVoyages.find((v) => v.voyageCode === voyageFilter)?.vesselName + " - " + voyageFilter
+                            : "Tìm tên tàu / chuyến..."}
+                        </span>
+                      </div>
+                      <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[280px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Nhập tên tàu hoặc chuyến..." />
+                      <CommandList>
+                        <CommandEmpty>Không tìm thấy tàu hoặc chuyến.</CommandEmpty>
+                        <CommandGroup>
+                          {vesselVoyages.map((item) => (
+                            <CommandItem
+                              key={item.voyageCode}
+                              value={`${item.vesselName} ${item.voyageCode}`}
+                              onSelect={() => {
+                                setVoyageFilter(item.voyageCode === voyageFilter ? null : item.voyageCode)
+                                setComboboxOpen(false)
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 size-4",
+                                  voyageFilter === item.voyageCode ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {item.vesselName} - {item.voyageCode}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -340,6 +400,7 @@ export function ContainersPageClient({
                         <TableHead>Trạng thái & Vị trí</TableHead>
                         <TableHead>Hải quan & Chứng từ</TableHead>
                         <TableHead>Đích đến / Tuyến</TableHead>
+                        <TableHead>Mã số chuyến</TableHead>
                         <TableHead>Ngày dự kiến</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -399,6 +460,10 @@ export function ContainersPageClient({
                             <TableCell className="text-sm text-muted-foreground space-y-1 max-w-[150px] truncate">
                               <p className="font-medium text-foreground">{container.destinationLabel}</p>
                               <p className="text-xs">{container.routeLabel ?? "Chưa gắn tuyến"}</p>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground space-y-1 max-w-[120px] truncate">
+                              <p className="font-medium text-foreground">{container.voyageCode ?? "--"}</p>
+                              {container.vesselName && <p className="text-xs">{container.vesselName}</p>}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground space-y-1">
                               <p>{container.etaLabel}</p>

@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation"
 import type { AuthChangeEvent, Session, UserResponse } from "@supabase/supabase-js"
 import {
   AlertTriangle,
+  BarChart2,
+  ChevronRight,
   ChevronsUpDown,
   FileText,
   Grid3X3,
@@ -38,23 +40,39 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import {
   isLocalAuthMockEnabled,
   readLocalAuthSessionFromCookieHeader,
 } from "@/lib/auth/mock-auth"
 import { createClient } from "@/lib/supabase/client"
 
-const navigation = [
+type NavigationItem = {
+  name: string
+  href: string
+  icon: any
+  items?: { name: string; href: string }[]
+}
+
+const navigation: NavigationItem[] = [
   { name: "Bảng điều khiển", href: "/", icon: LayoutDashboard },
+  { name: "Sản lượng", href: "/throughput/overview", icon: BarChart2 },
   { name: "Container", href: "/containers", icon: Package },
   { name: "Quản lý bãi", href: "/yard", icon: Grid3X3 },
   { name: "Quản Lý Chuyến Sà Lan", href: "/transport", icon: Ship },
   { name: "Hoạt động hải quan", href: "/customs", icon: FileText },
   { name: "Người dùng", href: "/users", icon: Users },
   { name: "Cài đặt", href: "/settings", icon: Settings },
-] as const
+]
 
 function formatDisplayName(email: string | null) {
   if (!email) {
@@ -174,6 +192,40 @@ export function AppSidebar() {
         <SidebarMenu>
           {navigation.map((item) => {
             const isActive = isActiveRoute(pathname, item.href)
+
+            if (item.items && item.items.length > 0) {
+              return (
+                <Collapsible
+                  key={item.name}
+                  asChild
+                  defaultOpen={isActive}
+                  className="group/collapsible"
+                >
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton tooltip={item.name} className="h-10 rounded-lg px-3" isActive={isActive}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.name}</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {item.items.map((subItem) => (
+                          <SidebarMenuSubItem key={subItem.name}>
+                            <SidebarMenuSubButton asChild isActive={isActiveRoute(pathname, subItem.href)}>
+                              <Link href={subItem.href}>
+                                <span>{subItem.name}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )
+            }
 
             return (
               <SidebarMenuItem key={item.name}>

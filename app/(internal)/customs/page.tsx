@@ -167,9 +167,9 @@ export default function CustomsPage() {
 
   const handlePlaceHold = () => {
     if (!selectedContainer) return
-    const updated = data.map(c => 
-      c.id === selectedContainer.id 
-        ? { ...c, customsStatus: "hold" as const, holdStatus: "Active", holdReason: holdReasonType || "Lý do khác" } 
+    const updated = data.map(c =>
+      c.id === selectedContainer.id
+        ? { ...c, customsStatus: "hold" as const, holdStatus: "Active", holdReason: holdReasonType || "Lý do khác" }
         : c
     )
     setData(updated)
@@ -180,9 +180,9 @@ export default function CustomsPage() {
 
   const handleRemoveHold = () => {
     if (!selectedContainer) return
-    const updated = data.map(c => 
-      c.id === selectedContainer.id 
-        ? { ...c, customsStatus: "cleared" as const, holdStatus: "None", holdReason: "" } 
+    const updated = data.map(c =>
+      c.id === selectedContainer.id
+        ? { ...c, customsStatus: "cleared" as const, holdStatus: "None", holdReason: "" }
         : c
     )
     setData(updated)
@@ -192,9 +192,9 @@ export default function CustomsPage() {
 
   const handleMarkInspected = () => {
     if (!selectedContainer) return
-    const updated = data.map(c => 
-      c.id === selectedContainer.id 
-        ? { ...c, inspectionRequired: false } 
+    const updated = data.map(c =>
+      c.id === selectedContainer.id
+        ? { ...c, inspectionRequired: false }
         : c
     )
     setData(updated)
@@ -203,9 +203,9 @@ export default function CustomsPage() {
 
   const handleApproveRelease = () => {
     if (!selectedContainer) return
-    const updated = data.map(c => 
-      c.id === selectedContainer.id 
-        ? { ...c, releaseStatus: "released" as const } 
+    const updated = data.map(c =>
+      c.id === selectedContainer.id
+        ? { ...c, releaseStatus: "released" as const }
         : c
     )
     setData(updated)
@@ -230,10 +230,10 @@ export default function CustomsPage() {
             row.customsStatus === "cleared"
               ? "success"
               : row.customsStatus === "hold"
-              ? "error"
-              : row.customsStatus === "inspection"
-              ? "warning"
-              : "pending"
+                ? "error"
+                : row.customsStatus === "inspection"
+                  ? "warning"
+                  : "pending"
           }
         >
           {row.customsStatus.charAt(0).toUpperCase() + row.customsStatus.slice(1)}
@@ -279,8 +279,8 @@ export default function CustomsPage() {
             row.releaseStatus === "eligible"
               ? "success"
               : row.releaseStatus === "released"
-              ? "completed"
-              : "error"
+                ? "completed"
+                : "error"
           }
         >
           {row.releaseStatus === "eligible" ? "Đủ điều kiện" : row.releaseStatus === "released" ? "Đã giao" : "Chưa đủ ĐK"}
@@ -301,7 +301,7 @@ export default function CustomsPage() {
   const filteredData = data.filter(c => {
     const matchesSearch = c.containerNo.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCustoms = customsStatusFilter === "all" || c.customsStatus === customsStatusFilter
-    const matchesHold = holdStatusFilter === "all-hold" || 
+    const matchesHold = holdStatusFilter === "all-hold" ||
       (holdStatusFilter === "none" && c.holdStatus === "None") ||
       (holdStatusFilter === "active" && c.holdStatus === "Active") ||
       (holdStatusFilter === "inspection" && c.holdStatus === "Inspection")
@@ -399,9 +399,9 @@ export default function CustomsPage() {
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <div className="relative flex-1 w-full max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Tìm kiếm container..." 
-              className="pl-9 bg-secondary border-border" 
+            <Input
+              placeholder="Tìm kiếm container..."
+              className="pl-9 bg-secondary border-border"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -494,10 +494,10 @@ export default function CustomsPage() {
                         selectedContainer.customsStatus === "cleared"
                           ? "success"
                           : selectedContainer.customsStatus === "hold"
-                          ? "error"
-                          : selectedContainer.customsStatus === "inspection"
-                          ? "warning"
-                          : "pending"
+                            ? "error"
+                            : selectedContainer.customsStatus === "inspection"
+                              ? "warning"
+                              : "pending"
                       }
                       size="md"
                     >
@@ -508,12 +508,12 @@ export default function CustomsPage() {
                         selectedContainer.releaseStatus === "eligible"
                           ? "success"
                           : selectedContainer.releaseStatus === "released"
-                          ? "completed"
-                          : "error"
+                            ? "completed"
+                            : "error"
                       }
                       size="md"
                     >
-                      {selectedContainer.releaseStatus === "eligible" ? "Đủ ĐK phát hành" : selectedContainer.releaseStatus === "released" ? "Đã phát hành" : "Chưa đủ ĐK"}
+                      {selectedContainer.releaseStatus === "eligible" ? "Đã thông qua hải quan" : selectedContainer.releaseStatus === "released" ? "Đã phát hành" : "Chưa đủ ĐK"}
                     </StatusBadge>
                   </div>
 
@@ -727,7 +727,7 @@ export default function CustomsPage() {
               <Button variant="outline" onClick={() => setShowHoldDialog(false)}>
                 Hủy
               </Button>
-              <Button 
+              <Button
                 variant={holdAction === "place" ? "destructive" : "default"}
                 onClick={holdAction === "place" ? handlePlaceHold : handleRemoveHold}
               >

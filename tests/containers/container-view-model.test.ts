@@ -28,6 +28,8 @@ const containers: ContainerDirectoryItem[] = [
     customsStatusLabel: null,
     billNo: null,
     sealNo: null,
+    voyageCode: null,
+    vesselName: null,
   },
   {
     id: "c2",
@@ -48,6 +50,8 @@ const containers: ContainerDirectoryItem[] = [
     customsStatusLabel: null,
     billNo: null,
     sealNo: null,
+    voyageCode: null,
+    vesselName: null,
   },
   {
     id: "c3",
@@ -68,6 +72,8 @@ const containers: ContainerDirectoryItem[] = [
     customsStatusLabel: null,
     billNo: null,
     sealNo: null,
+    voyageCode: null,
+    vesselName: null,
   },
 ]
 
