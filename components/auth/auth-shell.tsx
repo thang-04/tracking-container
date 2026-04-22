@@ -15,17 +15,20 @@ type AuthShellProps = {
 const statusCards = [
   {
     title: "Điều phối nội bộ",
-    description: "Nhân sự cảng biển và cảng cạn đi vào đúng khu vận hành sau đăng nhập.",
+    description:
+      "Hỗ trợ nhân sự cảng quản lý và điều phối hoạt động khai thác thông qua các phân hệ như sản lượng, container và quản lý bãi.",
     icon: ShieldCheck,
   },
   {
-    title: "Cổng khách hàng",
-    description: "Khách hàng được đưa thẳng tới khu tra cứu container được ủy quyền.",
+    title: "Quản lý bãi & container",
+    description:
+      "Theo dõi vị trí, trạng thái container trong bãi; tối ưu sắp xếp và hỗ trợ tra cứu phục vụ vận hành.",
     icon: Waypoints,
   },
   {
-    title: "Theo dõi tuyến sà lan",
-    description: "Thời gian đến dự kiến, các mốc kiểm tra và trạng thái container được đồng bộ trên cùng một giao diện.",
+    title: "Quản lý vận tải sà lan",
+    description:
+      "Quản lý kế hoạch và theo dõi hành trình sà lan, cập nhật tiến độ vận chuyển và liên kết với hoạt động bãi.",
     icon: Waves,
   },
 ]
